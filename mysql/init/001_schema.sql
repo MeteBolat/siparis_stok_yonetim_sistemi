@@ -127,7 +127,16 @@ INSERT INTO products (sku, name, price, weight_kg) VALUES
 ('IP15' , 'iPhone 15', 60000, 0.165),
 ('TV4K' , 'Philips 4K UHD TV', 33000, 5);
 
+INSERT INTO customers (name, email, phone, city, address) VALUES
+('Ali Yılmaz', 'ali@example.com', '05123456789, 'Ankara', 'Çankaya');
+
 INSERT INTO inventory (warehouse_id, product_id, quantity_on_hand, reserved_quantity) VALUES
 (1, 1, 50, 0),
 (2, 1, 20, 0),
 (2, 2, 5, 0);
+
+INSERT INTO city_distances (from_city, to_city, distance_km, shipping_cost) VALUES
+('İstanbul', 'Ankara', 450, 120.00),
+('Ankara',   'Ankara',  10,  20.00),
+('İstanbul', 'İstanbul', 15,  25.00),
+('Ankara',   'İstanbul', 450, 110.00);
