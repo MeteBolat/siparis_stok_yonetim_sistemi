@@ -49,6 +49,7 @@ CREATE TABLE inventory (
     CONSTRAINT uq_inventory_wh_prod UNIQUE (warehouse_id, product_id)
 ) ENGINE=InnoDB;
 
+-- Müşteriler
 CREATE TABLE customers (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
@@ -57,37 +58,68 @@ CREATE TABLE customers (
     city VARCHAR(100),
     address VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB;
 
+-- Siparişler
 CREATE TABLE orders (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     customer_id INT UNSIGNED NOT NULL,
     warehouse_id INT UNSIGNED NULL,
-    status ENUM('pending', 'reserved', 'shipped', 'cancelled'),
-    shipping_cost DECIMAL(10,2) DEFAULT 0.00,
-    total_amount DECIMAL(10,2) DEFAULT 0.00,
+    status ENUM('pending', 'reserved', 'shipped', 'cancelled') NOT NULL DEFAULT 'pending',
+    shipping_cost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE
-);
 
+    CONSTRAINT fk_orders_customer
+      FOREIGN KEY (customer_id)
+      REFERENCES customers(id)
+      ON DELETE CASCADE
+      ON UPDATE CASCADE,
+
+    CONSTRAINT fk_orders_warehouse
+      FOREIGN KEY (warehouse_id)
+      REFERENCES warehouses(id)
+      ON DELETE CASCADE
+      ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- Sipariş satırları
 CREATE TABLE order_items (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED NOT NULL,
-    
-)
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    INDEX idx_order_product (order_id, product_id),
+
+    CONSTRAINT fk_order_items_order
+      FOREIGN KEY (order_id)
+      REFERENCES orders(id)
+      ON DELETE CASCADE
+      ON UPDATE CASCADE,
+
+    CONSTRAINT fk_order_items_product
+      FOREIGN KEY (product_id)
+      REFERENCES products(id)
+      ON DELETE CASCADE
+      ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 
+
+-- Veriler
 INSERT INTO warehouses (name, city) VALUES
 ('İstanbul Deposu', 'İstanbul'),
 ('Ankara Deposu', 'Ankara');
 
 INSERT INTO products (sku, name, price, weight_kg) VALUES
-("IP15" , "iPhone 15", 60000, 0.165),
-("TV4K" , "Philips 4K UHD TV", 33000, 5);
+('IP15' , 'iPhone 15', 60000, 0.165),
+('TV4K' , 'Philips 4K UHD TV', 33000, 5);
 
 INSERT INTO inventory (warehouse_id, product_id, quantity_on_hand, reserved_quantity) VALUES
 (1, 1, 50, 0),
 (2, 1, 20, 0),
 (2, 2, 5, 0);
-
