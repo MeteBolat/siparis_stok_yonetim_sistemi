@@ -108,7 +108,15 @@ CREATE TABLE order_items (
       ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- 
+-- Mesafeler
+CREATE TABLE city_distances (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  from_city VARCHAR(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  to_city   VARCHAR(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  distance_km INT NOT NULL,
+  shipping_cost DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  UNIQUE (from_city, to_city)
+) ENGINE=InnoDB;
 
 -- Veriler
 INSERT INTO warehouses (name, city) VALUES
