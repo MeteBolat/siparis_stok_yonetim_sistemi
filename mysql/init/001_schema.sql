@@ -128,7 +128,7 @@ INSERT INTO products (sku, name, price, weight_kg) VALUES
 ('TV4K' , 'Philips 4K UHD TV', 33000, 5);
 
 INSERT INTO customers (name, email, phone, city, address) VALUES
-('Ali Yılmaz', 'ali@example.com', '05123456789, 'Ankara', 'Çankaya');
+('Ali Yılmaz', 'ali@example.com', '05123456789', 'Ankara', 'Çankaya');
 
 INSERT INTO inventory (warehouse_id, product_id, quantity_on_hand, reserved_quantity) VALUES
 (1, 1, 50, 0),
