@@ -9,43 +9,53 @@ require_once __DIR__ . '/warehouse.php'; //dosya bağlantıları
   - orders + order_items kayıtlarını ekler
   (Stok düşmez, rezerv de yapmaz)
  */
-function createSimpleOrder(PDO $pdo, int $customerId, int $productId, int $quantity): ?int  
+
+function createSimpleOrder(PDO $pdo, int $customerId, int $productId, int $quantity): ?int
 {
-    //Müşteri şehrini bul
+    // 1) Müşterinin şehrini bul
     $stmt = $pdo->prepare("SELECT city FROM customers WHERE id = :id");
     $stmt->execute([':id' => $customerId]);
     $customer = $stmt->fetch();
 
     if (!$customer) {
+        echo "DEBUG: Müşteri bulunamadı (customer_id = {$customerId})<br>";
         return null;
     }
 
-    $customerCity = $customer['city'];  
+    $customerCity = $customer['city'];
+    echo "DEBUG: Müşteri bulundu, şehir = {$customerCity}<br>";
 
-
-    //En uygun depoyu bul
+    // 2) En uygun depoyu bul
     $bestWarehouse = findBestWarehouse($pdo, $productId, $customerCity, $quantity);
+
     if (!$bestWarehouse) {
+        echo "DEBUG: Uygun depo bulunamadı (product_id = {$productId}, city = {$customerCity}, quantity = {$quantity})<br>";
         return null;
     }
 
-    //Ürün fiyatını al
+    echo "DEBUG: Depo bulundu, warehouse_id = {$bestWarehouse['warehouse_id']}<br>";
+
+    // 3) Ürünün fiyatını al
     $stmt = $pdo->prepare("SELECT price FROM products WHERE id = :pid");
     $stmt->execute([':pid' => $productId]);
     $product = $stmt->fetch();
 
     if (!$product) {
+        echo "DEBUG: Ürün bulunamadı (product_id = {$productId})<br>";
         return null;
     }
 
+    echo "DEBUG: Ürün bulundu, price = {$product['price']}<br>";
+
+    // Fiyat hesapları
     $unitPrice    = (float)$product['price'];
     $totalPrice   = $unitPrice * $quantity;
     $shippingCost = (float)$bestWarehouse['shipping_cost'];
 
     try {
-        $pdo->beginTransaction();  // Sipariş kaydı yarım kalmaz. 
+        $pdo->beginTransaction();
 
-        // orders kaydını ekleme
+        // orders kaydı
         $stmtOrder = $pdo->prepare("
             INSERT INTO orders (customer_id, warehouse_id, status, shipping_cost, total_amount)
             VALUES (:cid, :wid, 'pending', :shipping_cost, :total_amount)
@@ -59,7 +69,7 @@ function createSimpleOrder(PDO $pdo, int $customerId, int $productId, int $quant
 
         $orderId = (int)$pdo->lastInsertId();
 
-        //order_items kaydı
+        // order_items kaydı
         $stmtItem = $pdo->prepare("
             INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
             VALUES (:oid, :pid, :qty, :unit_price, :total_price)
@@ -72,13 +82,17 @@ function createSimpleOrder(PDO $pdo, int $customerId, int $productId, int $quant
             ':total_price' => $totalPrice,
         ]);
 
-        $pdo->commit();  
+        $pdo->commit();
+        echo "DEBUG: Sipariş başarıyla oluşturuldu, ID = {$orderId}<br>";
         return $orderId;
-    } catch (Exception $e) {  //hata olursa 
+    } catch (Exception $e) {
         $pdo->rollBack();
+        echo "DEBUG: Exception oluştu: " . $e->getMessage() . "<br>";
         return null;
     }
 }
+
+
 
 /*
   Sipariş için stok rezervasyonu yapar:
@@ -302,3 +316,5 @@ function shipOrder(PDO $pdo, int $orderId): bool  //kargoya verme kısmı
         return false;
     }
 }
+
+
