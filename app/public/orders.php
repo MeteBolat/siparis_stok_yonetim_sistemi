@@ -135,6 +135,8 @@ $orders = $stmt->fetchAll();
                     <td><?= number_format($order['shipping_cost'], 2) ?> ₺</td>
                     <td><?= htmlspecialchars($order['created_at']) ?></td>
                     <td>
+                            <a class="btn btn-reserve" style="background:#6f42c1; color:white;" href="order_view.php?id=<?= $order['id'] ?>">Detay</a>
+
                         <?php if ($status === 'pending'): ?>
                             <a class="btn btn-reserve" href="reserve_order.php?id=<?= $order['id'] ?>">Rezerv Et</a>
                         <?php elseif ($status === 'reserved'): ?>
