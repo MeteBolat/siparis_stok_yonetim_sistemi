@@ -47,7 +47,6 @@ $orders = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <title>Sipariş Listesi</title>
-    <a href="order_create.php" class="btn btn-success">Yeni Sipariş</a>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         table { border-collapse: collapse; width: 100%; margin-top: 20px; }
@@ -81,7 +80,13 @@ $orders = $stmt->fetchAll();
 </head>
 <body>
 
+<div style="display:flex; justify-content:space-between; align-items:center;">
     <h1>Sipariş Listesi</h1>
+    <a href="order_create.php" class="btn btn-success" style="padding:8px 14px; font-size:14px;">
+        + Yeni Sipariş
+    </a>
+</div>
+
 
     <?php if ($msg === 'reserved_success'): ?>
         <div class="msg msg-success">Stok rezervasyonu başarıyla yapıldı.</div>
