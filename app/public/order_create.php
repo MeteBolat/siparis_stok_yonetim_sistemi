@@ -142,16 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             // 2.8) Inventory güncelle (eldeki stoktan düş)
-            $updateInvSql = "
-                UPDATE inventory
-                SET quantity_on_hand = quantity_on_hand - :qty
-                WHERE id = :inv_id
-            ";
-            $stmtUpdInv = $pdo->prepare($updateInvSql);
-            $stmtUpdInv->execute([
-                ':qty'    => $quantity,
-                ':inv_id' => $inventory['id'],
-            ]);
+            
 
             $pdo->commit();
 
