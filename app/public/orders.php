@@ -47,6 +47,7 @@ $orders = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <title>Sipariş Listesi</title>
+    <a href="order_create.php" class="btn btn-success">Yeni Sipariş</a>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         table { border-collapse: collapse; width: 100%; margin-top: 20px; }
