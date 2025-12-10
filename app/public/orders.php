@@ -73,9 +73,11 @@ $orders = $stmt->fetchAll();
         .btn-reserve { background-color: #0275d8; color: white; }
         .btn-ship { background-color: #5cb85c; color: white; }
         .btn-disabled { background-color: #ccc; color: #666; cursor: not-allowed; }
+        .btn-cancel { background-color: #d9534f; color: white; }
         .msg { padding: 10px; border-radius: 4px; margin-bottom: 10px; }
         .msg-success { background-color: #dff0d8; color: #3c763d; }
         .msg-error { background-color: #f2dede; color: #a94442; }
+
     </style>
 </head>
 <body>
@@ -96,7 +98,12 @@ $orders = $stmt->fetchAll();
         <div class="msg msg-success">Sipariş başarıyla kargoya verildi.</div>
     <?php elseif ($msg === 'shipped_fail'): ?>
         <div class="msg msg-error">Kargoya verme işlemi başarısız oldu.</div>
+    <?php elseif ($msg === 'cancel_success'): ?>
+        <div class="msg msg-success">Sipariş başarıyla iptal edildi.</div>
+    <?php elseif ($msg === 'cancel_fail'): ?>
+        <div class="msg msg-error">Sipariş iptal edilirken hata oluştu.</div>
     <?php endif; ?>
+
 
     <table>
         <thead>
@@ -134,17 +141,29 @@ $orders = $stmt->fetchAll();
                     <td><?= number_format($order['total_amount'], 2) ?> ₺</td>
                     <td><?= number_format($order['shipping_cost'], 2) ?> ₺</td>
                     <td><?= htmlspecialchars($order['created_at']) ?></td>
-                    <td>
-                            <a class="btn btn-reserve" style="background:#6f42c1; color:white;" href="order_view.php?id=<?= $order['id'] ?>">Detay</a>
+<td>
+    <a class="btn btn-reserve" style="background:#6f42c1; color:white;"
+       href="order_view.php?id=<?= $order['id'] ?>">Detay</a>
 
-                        <?php if ($status === 'pending'): ?>
-                            <a class="btn btn-reserve" href="reserve_order.php?id=<?= $order['id'] ?>">Rezerv Et</a>
-                        <?php elseif ($status === 'reserved'): ?>
-                            <a class="btn btn-ship" href="ship_order.php?id=<?= $order['id'] ?>">Kargoya Ver</a>
-                        <?php else: ?>
-                            <span class="btn btn-disabled">İşlem yok</span>
-                        <?php endif; ?>
-                    </td>
+    <?php if ($order['status'] === 'pending'): ?>
+        <a class="btn btn-reserve" href="reserve_order.php?id=<?= $order['id'] ?>">Rezerv Et</a>
+        <a class="btn btn-cancel" href="cancel_order.php?id=<?= $order['id'] ?>"
+           onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz?');">
+            İptal Et
+        </a>
+
+    <?php elseif ($order['status'] === 'reserved'): ?>
+        <a class="btn btn-ship" href="ship_order.php?id=<?= $order['id'] ?>">Kargoya Ver</a>
+        <a class="btn btn-cancel" href="cancel_order.php?id=<?= $order['id'] ?>"
+           onclick="return confirm('Bu rezervasyonu iptal etmek istediğinize emin misiniz? Stoklar geri iade edilecek.');">
+            İptal Et
+        </a>
+
+    <?php else: ?>
+        <span class="btn btn-disabled">İşlem yok</span>
+    <?php endif; ?>
+</td>
+
                 </tr>
             <?php endforeach; ?>
         <?php endif; ?>
