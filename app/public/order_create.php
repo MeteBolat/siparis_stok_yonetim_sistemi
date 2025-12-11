@@ -1,12 +1,11 @@
 <?php
-// order_create.php
 
-require_once __DIR__ . '/../src/db.php'; // kendi yoluna göre gerekirse düzelt
+require_once __DIR__ . '/../src/db.php'; 
 
 $successMessage = '';
 $errorMessage   = '';
 
-// 1) Dropdownlar için listeler
+// Dropdownlar için listeler
 try {
     $customersStmt = $pdo->query("SELECT id, name, city FROM customers ORDER BY name ASC");
     $customers = $customersStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -20,25 +19,40 @@ try {
     die("Liste verileri alınırken hata oluştu: " . $e->getMessage());
 }
 
-// 2) Form POST edildi mi?
+// Form POST edildi mi?
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $customerId  = isset($_POST['customer_id']) ? (int) $_POST['customer_id'] : 0;
     $warehouseId = isset($_POST['warehouse_id']) ? (int) $_POST['warehouse_id'] : 0;
-    $productId   = isset($_POST['product_id']) ? (int) $_POST['product_id'] : 0;
-    $quantity    = isset($_POST['quantity']) ? (int) $_POST['quantity'] : 0;
+    $itemsInput  = $_POST['items'] ?? [];
 
-    if ($customerId <= 0 || $warehouseId <= 0 || $productId <= 0 || $quantity <= 0) {
-        $errorMessage = "Lütfen müşteri, depo, ürün seçin ve pozitif bir adet girin.";
+    // Ürün satırlarını temizle
+    $cleanItems = [];
+    if (is_array($itemsInput)) {
+        foreach ($itemsInput as $row) {
+            $pid = isset($row['product_id']) ? (int)$row['product_id'] : 0;
+            $qty = isset($row['quantity']) ? (int)$row['quantity'] : 0;
+            if ($pid > 0 && $qty > 0) {
+                $cleanItems[] = [
+                    'product_id' => $pid,
+                    'quantity'   => $qty,
+                ];
+            }
+        }
+    }
+
+    if ($customerId <= 0 || $warehouseId <= 0) {
+        $errorMessage = "Lütfen müşteri ve depo seçin.";
+    } elseif (count($cleanItems) === 0) {
+        $errorMessage = "En az bir ürün satırı ekleyin ve adetleri 1 veya üzeri girin.";
     } else {
         try {
             $pdo->beginTransaction();
 
-            // 2.1) Müşteri ve depo bilgilerini çek (şehir için)
+            // Müşteri ve depo (şehirler)
             $customerSql = "SELECT id, city FROM customers WHERE id = :id";
             $stmtCust = $pdo->prepare($customerSql);
             $stmtCust->execute([':id' => $customerId]);
             $customer = $stmtCust->fetch(PDO::FETCH_ASSOC);
-
             if (!$customer) {
                 throw new Exception("Müşteri bulunamadı.");
             }
@@ -47,46 +61,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtWh = $pdo->prepare($warehouseSql);
             $stmtWh->execute([':id' => $warehouseId]);
             $warehouse = $stmtWh->fetch(PDO::FETCH_ASSOC);
-
             if (!$warehouse) {
                 throw new Exception("Depo bulunamadı.");
             }
 
-            // 2.2) Ürün bilgisi
-            $productSql = "SELECT id, name, price FROM products WHERE id = :id";
+            // Ürün bilgilerini topluca çek
+            $productIds   = array_column($cleanItems, 'product_id');
+            $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+
+            $productSql = "SELECT id, name, price FROM products WHERE id IN ($placeholders)";
             $stmtProd = $pdo->prepare($productSql);
-            $stmtProd->execute([':id' => $productId]);
-            $product = $stmtProd->fetch(PDO::FETCH_ASSOC);
+            $stmtProd->execute($productIds);
+            $productRows = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!$product) {
-                throw new Exception("Ürün bulunamadı.");
+            if (count($productRows) !== count(array_unique($productIds))) {
+                throw new Exception("Bazı ürünler bulunamadı.");
             }
 
-            // 2.3) Inventory kaydı (ilgili depo + ilgili ürün) - FOR UPDATE ile kilitle
+            $productMap = [];
+            foreach ($productRows as $pr) {
+                $productMap[$pr['id']] = $pr;
+            }
+
+            // Depodaki stok kayıtlarını çek
             $invSql = "
-                SELECT id, quantity_on_hand, reserved_quantity
+                SELECT product_id, quantity_on_hand
                 FROM inventory
-                WHERE warehouse_id = :warehouse_id
-                  AND product_id   = :product_id
-                FOR UPDATE
+                WHERE warehouse_id = ?
+                  AND product_id IN ($placeholders)
             ";
+            $params  = array_merge([$warehouseId], $productIds);
             $stmtInv = $pdo->prepare($invSql);
-            $stmtInv->execute([
-                ':warehouse_id' => $warehouseId,
-                ':product_id'   => $productId,
-            ]);
-            $inventory = $stmtInv->fetch(PDO::FETCH_ASSOC);
+            $stmtInv->execute($params);
+            $invRows = $stmtInv->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!$inventory) {
-                throw new Exception("Bu depoda bu ürüne ait stok kaydı yok.");
+            $invMap = [];
+            foreach ($invRows as $ir) {
+                $invMap[$ir['product_id']] = (int)$ir['quantity_on_hand'];
             }
 
-            $availableQty = (int) $inventory['quantity_on_hand'];
-            if ($availableQty < $quantity) {
-                throw new Exception("Yeterli stok yok. Mevcut stok: {$availableQty}");
+            // Stok kontrolü (daha rezervasyonda düşüreceğiz)
+            foreach ($cleanItems as $row) {
+                $pid = $row['product_id'];
+                $qty = $row['quantity'];
+
+                if (!isset($invMap[$pid])) {
+                    throw new Exception("Bu depoda ürün için stok kaydı yok. Ürün ID: {$pid}");
+                }
+
+                $available = $invMap[$pid];
+                if ($available < $qty) {
+                    throw new Exception("Yeterli stok yok. Ürün ID: {$pid}, Mevcut: {$available}, İstenen: {$qty}");
+                }
             }
 
-            // 2.4) Kargo ücreti (şehir mesafelerinden)
+            // Kargo ücreti
             $fromCity = $warehouse['city'];
             $toCity   = $customer['city'];
 
@@ -103,15 +132,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':to_city'   => $toCity,
             ]);
             $distanceRow = $stmtShip->fetch(PDO::FETCH_ASSOC);
+            $shippingCost = $distanceRow ? (float)$distanceRow['shipping_cost'] : 0.00;
 
-            $shippingCost = $distanceRow ? (float) $distanceRow['shipping_cost'] : 0.00;
+            // Fiyat hesapları
+            $itemsTotal = 0.0;
+            foreach ($cleanItems as &$row) {
+                $pid       = $row['product_id'];
+                $qty       = $row['quantity'];
+                $unitPrice = (float)$productMap[$pid]['price'];
 
-            // 2.5) Fiyatlar
-            $unitPrice   = (float) $product['price'];
-            $itemsTotal  = $unitPrice * $quantity;
+                $row['unit_price']  = $unitPrice;
+                $row['total_price'] = $unitPrice * $qty;
+                $itemsTotal += $row['total_price'];
+            }
+            unset($row);
+
             $totalAmount = $itemsTotal + $shippingCost;
 
-            // 2.6) Orders tablosuna ekle
+            // Orders
             $orderSql = "
                 INSERT INTO orders (customer_id, warehouse_id, status, shipping_cost, total_amount)
                 VALUES (:customer_id, :warehouse_id, :status, :shipping_cost, :total_amount)
@@ -125,29 +163,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':total_amount' => $totalAmount,
             ]);
 
-            $orderId = (int) $pdo->lastInsertId();
+            $orderId = (int)$pdo->lastInsertId();
 
-            // 2.7) Order_items tablosuna kalemi ekle
+            // Order_items (çoklu)
             $itemSql = "
                 INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
                 VALUES (:order_id, :product_id, :quantity, :unit_price, :total_price)
             ";
             $stmtItem = $pdo->prepare($itemSql);
-            $stmtItem->execute([
-                ':order_id'   => $orderId,
-                ':product_id' => $productId,
-                ':quantity'   => $quantity,
-                ':unit_price' => $unitPrice,
-                ':total_price'=> $itemsTotal,
-            ]);
 
-            // 2.8) Inventory güncelle (eldeki stoktan düş)
-            
+            foreach ($cleanItems as $row) {
+                $stmtItem->execute([
+                    ':order_id'   => $orderId,
+                    ':product_id' => $row['product_id'],
+                    ':quantity'   => $row['quantity'],
+                    ':unit_price' => $row['unit_price'],
+                    ':total_price'=> $row['total_price'],
+                ]);
+            }
 
             $pdo->commit();
 
-            $successMessage = "Sipariş oluşturuldu. Sipariş ID: {$orderId} | Ürün: " 
-                            . htmlspecialchars($product['name']) 
+            $successMessage = "Sipariş oluşturuldu. Sipariş ID: {$orderId} | Kalem sayısı: "
+                            . count($cleanItems)
                             . " | Toplam: " . number_format($totalAmount, 2) . " ₺";
         } catch (Exception $e) {
             if ($pdo->inTransaction()) {
@@ -168,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="bg-light">
 
 <div class="container py-4">
-    <h1 class="mb-4">Yeni Sipariş Oluştur</h1>
+    <h1 class="mb-4">Yeni Sipariş Oluştur (Çok Ürünlü)</h1>
 
     <?php if (!empty($successMessage)): ?>
         <div class="alert alert-success">
@@ -207,22 +245,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </select>
         </div>
 
-        <div class="mb-3">
-            <label for="product_id" class="form-label">Ürün</label>
-            <select name="product_id" id="product_id" class="form-select" required>
-                <option value="">-- Seç --</option>
-                <?php foreach ($products as $p): ?>
-                    <option value="<?= (int)$p['id'] ?>">
-                        <?= htmlspecialchars($p['name']) ?> - <?= htmlspecialchars($p['sku']) ?>
-                        (<?= number_format((float)$p['price'], 2) ?> ₺)
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
+        <h4 class="mt-4">Ürünler</h4>
 
-        <div class="mb-3">
-            <label for="quantity" class="form-label">Adet</label>
-            <input type="number" name="quantity" id="quantity" class="form-control" min="1" required>
+        <table class="table align-middle" id="items-table">
+            <thead>
+                <tr>
+                    <th style="width:60%;">Ürün</th>
+                    <th style="width:20%;">Adet</th>
+                    <th style="width:15%;">Birim Fiyat</th>
+                    <th style="width:5%;"></th>
+                </tr>
+            </thead>
+            <tbody id="items-body">
+                <!-- JS ile satırlar eklenecek -->
+            </tbody>
+        </table>
+
+        <button type="button" class="btn btn-secondary btn-sm mb-3" id="add-row">
+            + Satır Ekle
+        </button>
+
+        <div class="text-end mb-3">
+            <strong>Tahmini Ürün Toplamı: </strong>
+            <span id="items-total">0.00</span> ₺
         </div>
 
         <button type="submit" class="btn btn-primary">Siparişi Oluştur</button>
@@ -231,5 +276,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// PHP'den ürünleri JS'e alalım
+const products = <?= json_encode($products, JSON_UNESCAPED_UNICODE) ?>;
+
+let rowIndex = 0;
+
+function createRow(index) {
+    const tbody = document.getElementById('items-body');
+    const tr = document.createElement('tr');
+
+    // Ürün select
+    const tdProduct = document.createElement('td');
+    const select = document.createElement('select');
+    select.name = `items[${index}][product_id]`;
+    select.className = 'form-select';
+    select.required = true;
+
+    const optEmpty = document.createElement('option');
+    optEmpty.value = '';
+    optEmpty.textContent = '-- Ürün seç --';
+    select.appendChild(optEmpty);
+
+    products.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} - ${p.sku}`;
+        opt.dataset.price = p.price;
+        select.appendChild(opt);
+    });
+
+    tdProduct.appendChild(select);
+
+    // Adet input
+    const tdQty = document.createElement('td');
+    const inputQty = document.createElement('input');
+    inputQty.type = 'number';
+    inputQty.name = `items[${index}][quantity]`;
+    inputQty.min = '1';
+    inputQty.value = '1';
+    inputQty.required = true;
+    inputQty.className = 'form-control';
+    tdQty.appendChild(inputQty);
+
+    // Birim fiyat
+    const tdUnit = document.createElement('td');
+    tdUnit.className = 'text-end unit-price-cell';
+    tdUnit.textContent = '0.00 ₺';
+
+    // Sil butonu
+    const tdActions = document.createElement('td');
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'btn btn-danger btn-sm';
+    btnDel.textContent = 'Sil';
+    btnDel.onclick = function() {
+        tr.remove();
+        recalcTotals();
+    };
+    tdActions.appendChild(btnDel);
+
+    tr.appendChild(tdProduct);
+    tr.appendChild(tdQty);
+    tr.appendChild(tdUnit);
+    tr.appendChild(tdActions);
+
+    select.addEventListener('change', recalcTotals);
+    inputQty.addEventListener('input', recalcTotals);
+
+    tbody.appendChild(tr);
+    recalcTotals();
+}
+
+function recalcTotals() {
+    const rows = document.querySelectorAll('#items-body tr');
+    let total = 0;
+
+    rows.forEach(row => {
+        const select = row.querySelector('select');
+        const qtyInput = row.querySelector('input[type="number"]');
+        const unitCell = row.querySelector('.unit-price-cell');
+
+        const qty = parseInt(qtyInput.value || '0', 10);
+        let unitPrice = 0;
+
+        if (select.value) {
+            const opt = select.selectedOptions[0];
+            unitPrice = parseFloat(opt.dataset.price || '0');
+        }
+
+        const rowTotal = unitPrice * (isNaN(qty) ? 0 : qty);
+        total += rowTotal;
+
+        unitCell.textContent = unitPrice.toFixed(2) + ' ₺';
+    });
+
+    document.getElementById('items-total').textContent = total.toFixed(2);
+}
+
+document.getElementById('add-row').addEventListener('click', function () {
+    createRow(rowIndex++);
+});
+
+// Sayfa açılınca bir satır olması için
+createRow(rowIndex++);
+</script>
 </body>
 </html>
