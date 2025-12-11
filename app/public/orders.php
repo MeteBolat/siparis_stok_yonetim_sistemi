@@ -84,10 +84,16 @@ $orders = $stmt->fetchAll();
 
 <div style="display:flex; justify-content:space-between; align-items:center;">
     <h1>Sipariş Listesi</h1>
-    <a href="order_create.php" class="btn btn-success" style="padding:8px 14px; font-size:14px;">
-        + Yeni Sipariş
-    </a>
+    <div>
+        <a href="warehouse_stock.php" class="btn btn-secondary" style="padding:8px 14px; font-size:14px; margin-right:6px;">
+            Depo Stokları
+        </a>
+        <a href="order_create.php" class="btn btn-success" style="padding:8px 14px; font-size:14px;">
+            + Yeni Sipariş
+        </a>
+    </div>
 </div>
+
 
 
     <?php if ($msg === 'reserved_success'): ?>
