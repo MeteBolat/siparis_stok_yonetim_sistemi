@@ -85,6 +85,10 @@ $orders = $stmt->fetchAll();
 <div style="display:flex; justify-content:space-between; align-items:center;">
     <h1>Sipariş Listesi</h1>
     <div>
+        <a href="dashboard.php" class="btn btn-secondary">
+            Dashboard
+        </a>
+
         <a href="warehouse_stock.php" class="btn btn-secondary" style="padding:8px 14px; font-size:14px; margin-right:6px;">
             Depo Stokları
         </a>
