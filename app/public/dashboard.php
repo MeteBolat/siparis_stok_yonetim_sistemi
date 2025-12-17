@@ -1,6 +1,21 @@
 <?php
 require_once __DIR__ . '/../src/db.php';
 
+$range = $_GET['range'] ?? '30d'; // 7d , 30d , this_month , all
+
+$whereDate = "";
+$paramsDate = [];
+
+if ($range === '7d') {
+    $whereDate = " AND o.created_at >= (NOW() - INTERVAL 7 DAY) ";
+} elseif ($range === '30d') {
+    $whereDate = " AND o.created_at >= (NOW() - INTERVAL 30 DAY) ";
+} elseif ($range === 'this_month') {
+    $whereDate = " AND o.created_at >= DATE_FORMAT(NOW(), '%Y-%m-01') ";
+} elseif ($range === 'all') {
+    $whereDate = "";
+}
+
 /**
  * Notlar:
  * - “Satış” metrikleri için shipped siparişleri baz aldım.
@@ -33,6 +48,11 @@ $monthly = fetchAllAssoc($pdo, "
         COALESCE(SUM(total_amount),0) AS revenue
     FROM orders
     WHERE status='shipped'
+" . ($range === 'all' ? "" : " AND created_at >= " . (
+        $range === '7d' ? "(NOW() - INTERVAL 7 DAY)" :
+        ($range === '30d' ? "(NOW() - INTERVAL 30 DAY)" :
+        "DATE_FORMAT(NOW(), '%Y-%m-01')")
+    )) . "
     GROUP BY ym
     ORDER BY ym ASC
 ");
@@ -47,10 +67,16 @@ $topProducts = fetchAllAssoc($pdo, "
     JOIN orders o ON o.id = oi.order_id
     JOIN products p ON p.id = oi.product_id
     WHERE o.status='shipped'
+    " . ($range === 'all' ? "" : " AND o.created_at >= " . (
+        $range === '7d' ? "(NOW() - INTERVAL 7 DAY)" :
+        ($range === '30d' ? "(NOW() - INTERVAL 30 DAY)" :
+        "DATE_FORMAT(NOW(), '%Y-%m-01')")
+    )) . "
     GROUP BY p.id
     ORDER BY qty_sold DESC
     LIMIT 5
 ");
+
 
 // 4) Depolara göre eldeki stok değeri (quantity_on_hand * price)
 $warehouseValue = fetchAllAssoc($pdo, "
@@ -72,6 +98,11 @@ $cityOrders = fetchAllAssoc($pdo, "
     FROM orders o
     JOIN customers c ON c.id = o.customer_id
     WHERE o.status='shipped'
+    " . ($range === 'all' ? "" : " AND o.created_at >= " . (
+        $range === '7d' ? "(NOW() - INTERVAL 7 DAY)" :
+        ($range === '30d' ? "(NOW() - INTERVAL 30 DAY)" :
+        "DATE_FORMAT(NOW(), '%Y-%m-01')")
+    )) . "
     GROUP BY c.city
     ORDER BY order_count DESC
     LIMIT 10
@@ -110,6 +141,21 @@ $cityCounts= array_map('intval', array_column($cityOrders, 'order_count'));
       <a href="order_create.php" class="btn btn-success btn-sm">+ Yeni Sipariş</a>
     </div>
   </div>
+
+  <form method="GET" class="card p-3 mb-3">
+  <div class="row g-3 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label">Tarih Aralığı</label>
+      <select name="range" class="form-select" onchange="this.form.submit()">
+        <option value="7d" <?= $range==='7d'?'selected':'' ?>>Son 7 gün</option>
+        <option value="30d" <?= $range==='30d'?'selected':'' ?>>Son 30 gün</option>
+        <option value="this_month" <?= $range==='this_month'?'selected':'' ?>>Bu ay</option>
+        <option value="all" <?= $range==='all'?'selected':'' ?>>Tüm zamanlar</option>
+      </select>
+    </div>
+  </div>
+</form>
+
 
   <!-- KPI -->
   <div class="row g-3 mb-3">
