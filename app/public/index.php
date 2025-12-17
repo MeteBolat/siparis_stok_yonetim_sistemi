@@ -1,12 +1,5 @@
 <?php
-echo "__DIR__ = " . __DIR__ . "<br>";
-echo "ls __DIR__: <pre>" . shell_exec("ls -la " . escapeshellarg(__DIR__)) . "</pre>";
-echo "ls parent: <pre>" . shell_exec("ls -la " . escapeshellarg(dirname(__DIR__))) . "</pre>";
-exit;
-
-declare(strict_types=1);
-
-require_once __DIR__ . '/../src/db.php';
+require_once __DIR__ . '/../src/db.php'; // /var/www/src/db.php
 
 $c = $_GET['c'] ?? 'orders';
 $a = $_GET['a'] ?? 'index';
