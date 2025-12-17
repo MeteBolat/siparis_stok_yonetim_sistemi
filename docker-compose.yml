@@ -38,3 +38,5 @@ services:
     volumes:
       - ./app/public:/var/www/html
       - ./app/src:/var/www/src
+      - ./mvc_app:/var/www/mvc_app
+      - ./assets:/var/www/assets
