@@ -1,25 +1,52 @@
 <?php
-require_once __DIR__ . '/../src/db.php'; // /var/www/src/db.php
+declare(strict_types=1);
 
+// Basit autoload (namespace kullanmadan)
+function app_require(string $path): void {
+    $full = __DIR__ . '/../src/' . ltrim($path, '/');
+    if (!file_exists($full)) {
+        http_response_code(500);
+        exit("Missing file: " . htmlspecialchars($full));
+    }
+    require_once $full;
+}
+
+app_require('Models/Db.php');
+app_require('Core/View.php');
+app_require('Core/Controller.php');
+
+app_require('Models/OrderModel.php');
+app_require('Models/WarehouseModel.php');
+
+app_require('Controllers/OrdersController.php');
+app_require('Controllers/WarehouseController.php');
+app_require('Controllers/DashboardController.php');
+
+// Controller/action okuma
 $c = $_GET['c'] ?? 'orders';
 $a = $_GET['a'] ?? 'index';
 
-$routes = [
-  'orders' => __DIR__ . '/../mvc_app/Controllers/OrdersController.php',
+$controllerMap = [
+    'orders'    => OrdersController::class,
+    'warehouse' => WarehouseController::class,
+    'dashboard' => DashboardController::class,
 ];
 
-if (!isset($routes[$c])) {
-  http_response_code(404);
-  exit('Controller yok');
+if (!isset($controllerMap[$c])) {
+    http_response_code(404);
+    exit('Controller yok');
 }
 
-require_once $routes[$c];
+$controllerClass = $controllerMap[$c];
 
-$controller = new OrdersController($pdo);
+// Db bağlantısı (Model/Controller içine veriyoruz)
+$pdo = Db::connect();
+
+$controller = new $controllerClass($pdo);
 
 if (!method_exists($controller, $a)) {
-  http_response_code(404);
-  exit('Action yok');
+    http_response_code(404);
+    exit('Action yok');
 }
 
 $controller->$a();
