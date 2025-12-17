@@ -48,7 +48,7 @@
         </a>
 
         <!-- create action'ı daha sonra ekleyeceğiz -->
-        <a href="order_create.php" class="btn btn-success" style="padding:8px 14px; font-size:14px;">
+        <a href="index.php?c=orders&a=create" class="btn btn-success" style="padding:8px 14px; font-size:14px;">
             + Yeni Sipariş
         </a>
     </div>
@@ -110,7 +110,7 @@
 
                     <?php if ($order['status'] === 'pending'): ?>
                         <!-- reserve action'ı daha sonra ekleyeceğiz -->
-                        <a class="btn btn-reserve" href="reserve_order.php?id=<?= (int)$order['id'] ?>">Rezerv Et</a>
+                        <a class="btn btn-reserve" href="index.php?c=orders&a=reserve&id=<?= (int)$order['id'] ?>">Rezerv Et</a>
 
                         <a class="btn btn-cancel"
                            href="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"

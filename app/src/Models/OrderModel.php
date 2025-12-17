@@ -217,4 +217,213 @@ final class OrderModel
         ]);
         return $stmt->fetchAll() ?: [];
     }
+
+    public static function createMulti(PDO $pdo, int $customerId, int $warehouseId, array $cleanItems): array
+{
+    try {
+        $pdo->beginTransaction();
+
+        // Müşteri şehir
+        $stmtCust = $pdo->prepare("SELECT id, city FROM customers WHERE id = :id");
+        $stmtCust->execute([':id' => $customerId]);
+        $customer = $stmtCust->fetch();
+        if (!$customer) throw new Exception("Müşteri bulunamadı.");
+
+        // Depo şehir
+        $stmtWh = $pdo->prepare("SELECT id, city FROM warehouses WHERE id = :id");
+        $stmtWh->execute([':id' => $warehouseId]);
+        $warehouse = $stmtWh->fetch();
+        if (!$warehouse) throw new Exception("Depo bulunamadı.");
+
+        // Ürünleri topluca çek
+        $productIds = array_column($cleanItems, 'product_id');
+        $placeholders = implode(',', array_fill(0, count($productIds), '?'));
+
+        $stmtProd = $pdo->prepare("SELECT id, name, price FROM products WHERE id IN ($placeholders)");
+        $stmtProd->execute($productIds);
+        $productRows = $stmtProd->fetchAll();
+
+        if (count($productRows) !== count(array_unique($productIds))) {
+            throw new Exception("Bazı ürünler bulunamadı.");
+        }
+
+        $productMap = [];
+        foreach ($productRows as $pr) $productMap[(int)$pr['id']] = $pr;
+
+        // Stok kayıtlarını çek
+        $invSql = "
+            SELECT product_id, quantity_on_hand
+            FROM inventory
+            WHERE warehouse_id = ?
+              AND product_id IN ($placeholders)
+        ";
+        $params = array_merge([$warehouseId], $productIds);
+        $stmtInv = $pdo->prepare($invSql);
+        $stmtInv->execute($params);
+        $invRows = $stmtInv->fetchAll();
+
+        $invMap = [];
+        foreach ($invRows as $ir) $invMap[(int)$ir['product_id']] = (int)$ir['quantity_on_hand'];
+
+        // Stok kontrolü
+        foreach ($cleanItems as $row) {
+            $pid = (int)$row['product_id'];
+            $qty = (int)$row['quantity'];
+
+            if (!isset($invMap[$pid])) {
+                throw new Exception("Bu depoda ürün için stok kaydı yok. Ürün ID: {$pid}");
+            }
+
+            $available = (int)$invMap[$pid];
+            if ($available < $qty) {
+                throw new Exception("Yeterli stok yok. Ürün ID: {$pid}, Mevcut: {$available}, İstenen: {$qty}");
+            }
+        }
+
+        // Kargo ücreti (şehirler)
+        $stmtShip = $pdo->prepare("
+            SELECT shipping_cost
+            FROM city_distances
+            WHERE from_city = :from_city AND to_city = :to_city
+            LIMIT 1
+        ");
+        $stmtShip->execute([
+            ':from_city' => $warehouse['city'],
+            ':to_city'   => $customer['city'],
+        ]);
+        $distanceRow = $stmtShip->fetch();
+        $shippingCost = $distanceRow ? (float)$distanceRow['shipping_cost'] : 0.00;
+
+        // Fiyat hesapları
+        $itemsTotal = 0.0;
+        $enriched = [];
+        foreach ($cleanItems as $row) {
+            $pid = (int)$row['product_id'];
+            $qty = (int)$row['quantity'];
+            $unitPrice = (float)$productMap[$pid]['price'];
+            $totalPrice = $unitPrice * $qty;
+
+            $enriched[] = [
+                'product_id' => $pid,
+                'quantity' => $qty,
+                'unit_price' => $unitPrice,
+                'total_price' => $totalPrice,
+            ];
+            $itemsTotal += $totalPrice;
+        }
+
+        $totalAmount = $itemsTotal + $shippingCost;
+
+        // Orders insert
+        $stmtOrder = $pdo->prepare("
+            INSERT INTO orders (customer_id, warehouse_id, status, shipping_cost, total_amount)
+            VALUES (:customer_id, :warehouse_id, :status, :shipping_cost, :total_amount)
+        ");
+        $stmtOrder->execute([
+            ':customer_id' => $customerId,
+            ':warehouse_id' => $warehouseId,
+            ':status' => 'pending',
+            ':shipping_cost' => $shippingCost,
+            ':total_amount' => $totalAmount,
+        ]);
+        $orderId = (int)$pdo->lastInsertId();
+
+        // Order items insert
+        $stmtItem = $pdo->prepare("
+            INSERT INTO order_items (order_id, product_id, quantity, unit_price, total_price)
+            VALUES (:order_id, :product_id, :quantity, :unit_price, :total_price)
+        ");
+
+        foreach ($enriched as $row) {
+            $stmtItem->execute([
+                ':order_id' => $orderId,
+                ':product_id' => $row['product_id'],
+                ':quantity' => $row['quantity'],
+                ':unit_price' => $row['unit_price'],
+                ':total_price' => $row['total_price'],
+            ]);
+        }
+
+        $pdo->commit();
+
+        $msg = "Sipariş oluşturuldu. Sipariş ID: {$orderId} | Kalem sayısı: "
+             . count($enriched)
+             . " | Toplam: " . number_format($totalAmount, 2) . " ₺";
+
+        return [true, $msg];
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return [false, "Sipariş oluşturulurken hata: " . $e->getMessage()];
+    }
+}
+    public static function reserve(PDO $pdo, int $orderId): bool
+{
+    try {
+        $pdo->beginTransaction();
+
+        // siparişi kilitle
+        $stmtOrder = $pdo->prepare("
+            SELECT id, warehouse_id, status
+            FROM orders
+            WHERE id = :oid
+            FOR UPDATE
+        ");
+        $stmtOrder->execute([':oid' => $orderId]);
+        $order = $stmtOrder->fetch();
+
+        if (!$order) { $pdo->rollBack(); return false; }
+        if ($order['status'] !== 'pending') { $pdo->rollBack(); return false; }
+
+        $warehouseId = (int)$order['warehouse_id'];
+
+        // sipariş kalemleri
+        $stmtItems = $pdo->prepare("
+            SELECT product_id, quantity
+            FROM order_items
+            WHERE order_id = :oid
+        ");
+        $stmtItems->execute([':oid' => $orderId]);
+        $items = $stmtItems->fetchAll();
+
+        if (!$items) { $pdo->rollBack(); return false; }
+
+        foreach ($items as $item) {
+            $productId = (int)$item['product_id'];
+            $qty = (int)$item['quantity'];
+
+            // inventory satırını kilitle
+            $stmtInv = $pdo->prepare("
+                SELECT id, quantity_on_hand, reserved_quantity
+                FROM inventory
+                WHERE warehouse_id = :wid AND product_id = :pid
+                FOR UPDATE
+            ");
+            $stmtInv->execute([':wid' => $warehouseId, ':pid' => $productId]);
+            $inv = $stmtInv->fetch();
+
+            if (!$inv) { $pdo->rollBack(); return false; }
+
+            $available = (int)$inv['quantity_on_hand'] - (int)$inv['reserved_quantity'];
+            if ($available < $qty) { $pdo->rollBack(); return false; }
+
+            // reserved artır
+            $stmtUpd = $pdo->prepare("
+                UPDATE inventory
+                SET reserved_quantity = reserved_quantity + :qty
+                WHERE id = :id
+            ");
+            $stmtUpd->execute([':qty' => $qty, ':id' => (int)$inv['id']]);
+        }
+
+        // sipariş status reserved
+        $pdo->prepare("UPDATE orders SET status='reserved' WHERE id=:oid")
+            ->execute([':oid' => $orderId]);
+
+        $pdo->commit();
+        return true;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return false;
+    }
+}
 }

@@ -11,7 +11,7 @@
         <h1 class="h3 mb-0">Depo Stok Görüntüleme</h1>
         <div>
             <a href="index.php?c=orders&a=index" class="btn btn-secondary btn-sm me-2">Sipariş Listesi</a>
-            <a href="order_create.php" class="btn btn-success btn-sm">+ Yeni Sipariş</a>
+            <a href="index.php?c=orders&a=create" class="btn btn-success btn-sm">+ Yeni Sipariş</a>
         </div>
     </div>
 

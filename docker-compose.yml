@@ -38,3 +38,4 @@ services:
     volumes:
       - ./app/public:/var/www/html
       - ./app/src:/var/www/src
+
