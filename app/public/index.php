@@ -1,31 +1,32 @@
 <?php
+echo "__DIR__ = " . __DIR__ . "<br>";
+echo "ls __DIR__: <pre>" . shell_exec("ls -la " . escapeshellarg(__DIR__)) . "</pre>";
+echo "ls parent: <pre>" . shell_exec("ls -la " . escapeshellarg(dirname(__DIR__))) . "</pre>";
+exit;
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../src/db.php';
 
-$controller = $_GET['c'] ?? 'orders';
-$action     = $_GET['a'] ?? 'index';
+$c = $_GET['c'] ?? 'orders';
+$a = $_GET['a'] ?? 'index';
 
-$map = [
-  'orders'     => __DIR__ . '/../app/Controllers/OrderController.php',
-  'warehouses' => __DIR__ . '/../app/Controllers/WarehouseController.php',
-  'dashboard'  => __DIR__ . '/../app/Controllers/DashboardController.php',
-  'auth'       => __DIR__ . '/../app/Controllers/AuthController.php',
+$routes = [
+  'orders' => __DIR__ . '/../mvc_app/Controllers/OrdersController.php',
 ];
 
-if (!isset($map[$controller])) {
+if (!isset($routes[$c])) {
   http_response_code(404);
-  exit('Controller bulunamadı');
+  exit('Controller yok');
 }
 
-require_once $map[$controller];
+require_once $routes[$c];
 
-$class = ucfirst($controller) . 'Controller';
-$ctrl  = new $class($pdo);
+$controller = new OrdersController($pdo);
 
-if (!method_exists($ctrl, $action)) {
+if (!method_exists($controller, $a)) {
   http_response_code(404);
-  exit('Action bulunamadı');
+  exit('Action yok');
 }
 
-$ctrl->$action();
+$controller->$a();
