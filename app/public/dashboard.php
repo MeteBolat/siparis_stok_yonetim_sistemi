@@ -54,7 +54,7 @@ $monthly = fetchAllAssoc($pdo, "
         "DATE_FORMAT(NOW(), '%Y-%m-01')")
     )) . "
     GROUP BY ym
-    ORDER BY ym ASC
+    ORDER BY ym DESC
 ");
 
 // 3) En çok satılan 5 ürün (shipped)
