@@ -60,6 +60,8 @@ final class DashboardController extends Controller
 
         // 5) View'a gönder
         $this->render('dashboard/index.php', [
+            'title' => 'Dashboard',
+            'activeNav' => 'dashboard',
             'counts' => $counts,
             'totalOrders' => (int)($totals['total_orders'] ?? 0),
             'totalRevenue' => (float)($totals['total_revenue'] ?? 0),
@@ -67,5 +69,6 @@ final class DashboardController extends Controller
             'topLabels' => $topLabels,
             'topData' => $topData,
         ]);
-    }
+
+}
 }

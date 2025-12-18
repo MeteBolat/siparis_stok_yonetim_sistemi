@@ -1,113 +1,130 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <title>Sipariş #<?= htmlspecialchars((string)$order['id']) ?></title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f8f8f8;
-        }
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-        }
-        th { background: #fafafa; }
-        .status {
-            display: inline-block;
-            padding: 5px 10px;
-            color: white;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .pending  { background: #f0ad4e; }
-        .reserved { background: #5bc0de; }
-        .shipped  { background: #5cb85c; }
-        .cancelled{ background: #d9534f; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h3 mb-0">Sipariş #<?= (int)($order['id'] ?? 0) ?></h1>
+    <div class="text-muted small">Detay ekranı</div>
+  </div>
 
-        .back-btn {
-            background: #777;
-            color: white;
-            padding: 8px 14px;
-            border-radius: 4px;
-            text-decoration: none;
-            display:inline-block;
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-
-<a href="index.php?c=orders&a=index" class="back-btn">← Geri Dön</a>
-
-<h1>Sipariş #<?= htmlspecialchars((string)$order['id']) ?></h1>
-
-<div class="card">
-    <h2>Genel Bilgiler</h2>
-    <p><strong>Durum:</strong>
-        <span class="status <?= htmlspecialchars((string)$order['status']) ?>">
-            <?= htmlspecialchars((string)$order['status']) ?>
-        </span>
-    </p>
-    <p><strong>Oluşturulma:</strong> <?= htmlspecialchars((string)$order['created_at']) ?></p>
-    <p><strong>Kargo Ücreti:</strong> <?= number_format((float)$order['shipping_cost'], 2) ?> ₺</p>
-    <p><strong>Toplam Tutar:</strong> <?= number_format((float)$order['total_amount'], 2) ?> ₺</p>
+  <a href="index.php?c=orders&a=index" class="btn btn-outline-secondary btn-sm">← Geri</a>
 </div>
 
-<div class="card">
-    <h2>Müşteri Bilgileri</h2>
-    <p><strong>İsim:</strong> <?= htmlspecialchars((string)$order['customer_name']) ?></p>
-    <p><strong>E-posta:</strong> <?= htmlspecialchars((string)$order['customer_email']) ?></p>
-    <p><strong>Telefon:</strong> <?= htmlspecialchars((string)$order['customer_phone']) ?></p>
-    <p><strong>Şehir:</strong> <?= htmlspecialchars((string)$order['customer_city']) ?></p>
-    <p><strong>Adres:</strong> <?= htmlspecialchars((string)$order['customer_address']) ?></p>
-</div>
+<?php
+$status = (string)($order['status'] ?? '');
+$badge = match($status) {
+  'pending' => 'warning',
+  'reserved' => 'info',
+  'shipped' => 'success',
+  'cancelled' => 'danger',
+  default => 'secondary',
+};
+?>
 
-<div class="card">
-    <h2>Depo Bilgileri</h2>
-    <p><strong>Depo:</strong> <?= htmlspecialchars((string)$order['warehouse_name']) ?></p>
-    <p><strong>Şehir:</strong> <?= htmlspecialchars((string)$order['warehouse_city']) ?></p>
-</div>
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 text-muted">Genel Bilgiler</h2>
 
-<div class="card">
-    <h2>Sipariş Kalemleri</h2>
-    <table>
-        <thead>
-            <tr>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Durum</span>
+          <span class="badge text-bg-<?= $badge ?>"><?= htmlspecialchars($status) ?></span>
+        </div>
+        <hr>
+
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Oluşturulma</span>
+          <span><?= htmlspecialchars((string)($order['created_at'] ?? '')) ?></span>
+        </div>
+
+        <div class="d-flex justify-content-between mt-2">
+          <span class="text-muted">Kargo</span>
+          <span><?= number_format((float)($order['shipping_cost'] ?? 0), 2) ?> ₺</span>
+        </div>
+
+        <div class="d-flex justify-content-between mt-2">
+          <span class="text-muted">Toplam</span>
+          <span class="fw-semibold"><?= number_format((float)($order['total_amount'] ?? 0), 2) ?> ₺</span>
+        </div>
+
+        <hr>
+
+        <div class="d-flex gap-2 flex-wrap">
+          <?php if ($status === 'pending'): ?>
+            <a class="btn btn-sm btn-primary" href="index.php?c=orders&a=reserve&id=<?= (int)$order['id'] ?>">Rezerv Et</a>
+            <a class="btn btn-sm btn-danger"
+               href="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"
+               onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz?');">İptal</a>
+          <?php elseif ($status === 'reserved'): ?>
+            <a class="btn btn-sm btn-success" href="index.php?c=orders&a=ship&id=<?= (int)$order['id'] ?>">Kargoya Ver</a>
+            <a class="btn btn-sm btn-danger"
+               href="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"
+               onclick="return confirm('Bu rezervasyonu iptal etmek istediğinize emin misiniz? Stoklar geri iade edilecek.');">İptal</a>
+          <?php else: ?>
+            <span class="badge text-bg-secondary">İşlem yok</span>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 text-muted">Müşteri</h2>
+        <div class="row g-2">
+          <div class="col-md-6"><span class="text-muted">İsim:</span> <?= htmlspecialchars((string)($order['customer_name'] ?? '')) ?></div>
+          <div class="col-md-6"><span class="text-muted">Telefon:</span> <?= htmlspecialchars((string)($order['customer_phone'] ?? '')) ?></div>
+          <div class="col-md-6"><span class="text-muted">E-posta:</span> <?= htmlspecialchars((string)($order['customer_email'] ?? '')) ?></div>
+          <div class="col-md-6"><span class="text-muted">Şehir:</span> <?= htmlspecialchars((string)($order['customer_city'] ?? '')) ?></div>
+          <div class="col-12"><span class="text-muted">Adres:</span> <?= htmlspecialchars((string)($order['customer_address'] ?? '')) ?></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h6 text-muted">Depo</h2>
+        <div class="row g-2">
+          <div class="col-md-6"><span class="text-muted">Depo:</span> <?= htmlspecialchars((string)($order['warehouse_name'] ?? '')) ?></div>
+          <div class="col-md-6"><span class="text-muted">Şehir:</span> <?= htmlspecialchars((string)($order['warehouse_city'] ?? '')) ?></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h6 text-muted mb-3">Sipariş Kalemleri</h2>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle mb-0">
+            <thead class="table-light">
+              <tr>
                 <th>Ürün</th>
                 <th>SKU</th>
-                <th>Adet</th>
-                <th>Birim Fiyat</th>
-                <th>Toplam</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($items as $it): ?>
-            <tr>
-                <td><?= htmlspecialchars((string)$it['product_name']) ?></td>
-                <td><?= htmlspecialchars((string)$it['product_sku']) ?></td>
-                <td><?= (int)$it['quantity'] ?></td>
-                <td><?= number_format((float)$it['unit_price'], 2) ?> ₺</td>
-                <td><?= number_format((float)$it['total_price'], 2) ?> ₺</td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-</div>
+                <th class="text-end">Adet</th>
+                <th class="text-end">Birim</th>
+                <th class="text-end">Toplam</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($items)): ?>
+                <tr><td colspan="5" class="text-center py-3">Kalem yok.</td></tr>
+              <?php else: ?>
+                <?php foreach ($items as $it): ?>
+                  <tr>
+                    <td><?= htmlspecialchars((string)$it['product_name']) ?></td>
+                    <td><?= htmlspecialchars((string)$it['product_sku']) ?></td>
+                    <td class="text-end"><?= (int)$it['quantity'] ?></td>
+                    <td class="text-end"><?= number_format((float)$it['unit_price'], 2) ?> ₺</td>
+                    <td class="text-end"><?= number_format((float)$it['total_price'], 2) ?> ₺</td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
 
-</body>
-</html>
+      </div>
+    </div>
+
+  </div>
+</div>

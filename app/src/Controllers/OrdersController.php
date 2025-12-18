@@ -2,37 +2,44 @@
 final class OrdersController extends Controller
 {
     public function index(): void
-    {
-        $msg = $_GET['msg'] ?? null;
-        $orders = OrderModel::list($this->pdo);
+{
+    $msg = $_GET['msg'] ?? null;
 
-        $this->render('orders/index.php', [
-            'msg' => $msg,
-            'orders' => $orders,
-        ]);
-    }
+    $orders = OrderModel::list($this->pdo); 
+
+    $this->render('orders/index.php', [
+        'title' => 'Siparişler',
+        'activeNav' => 'orders',
+        'orders' => $orders,
+        'msg' => $msg,
+    ]);
+}
+
 
     public function view(): void
-    {
-        $orderId = (int)($_GET['id'] ?? 0);
-        if ($orderId <= 0) {
-            http_response_code(400);
-            exit("Geçersiz sipariş ID");
-        }
-
-        $order = OrderModel::findHeader($this->pdo, $orderId);
-        if (!$order) {
-            http_response_code(404);
-            exit("Sipariş bulunamadı");
-        }
-
-        $items = OrderModel::findItems($this->pdo, $orderId);
-
-        $this->render('orders/view.php', [
-            'order' => $order,
-            'items' => $items,
-        ]);
+{
+    $orderId = (int)($_GET['id'] ?? 0);
+    if ($orderId <= 0) {
+        http_response_code(400);
+        exit('Geçersiz sipariş ID');
     }
+
+    $order = OrderModel::findHeader($this->pdo, $orderId); // sende isim farklı olabilir
+    $items = OrderModel::findItems($this->pdo, $orderId);  // sende isim farklı olabilir
+
+    if (!$order) {
+        http_response_code(404);
+        exit('Sipariş bulunamadı');
+    }
+
+    $this->render('orders/view.php', [
+        'title' => 'Sipariş Detayı #' . $orderId,
+        'activeNav' => 'orders',
+        'order' => $order,
+        'items' => $items,
+    ]);
+}
+
 
     public function ship(): void
     {
@@ -50,12 +57,13 @@ final class OrdersController extends Controller
 
     public function create(): void
 {
-    // dropdown verileri
     $customers = $this->pdo->query("SELECT id, name, city FROM customers ORDER BY name ASC")->fetchAll();
     $warehouses = $this->pdo->query("SELECT id, name, city FROM warehouses ORDER BY name ASC")->fetchAll();
     $products = $this->pdo->query("SELECT id, sku, name, price FROM products ORDER BY name ASC")->fetchAll();
 
     $this->render('orders/create.php', [
+        'title' => 'Yeni Sipariş',
+        'activeNav' => 'orders',
         'customers' => $customers,
         'warehouses' => $warehouses,
         'products' => $products,
@@ -63,6 +71,8 @@ final class OrdersController extends Controller
         'errorMessage' => '',
     ]);
 }
+
+
 
     public function store(): void
 {
@@ -107,12 +117,15 @@ final class OrdersController extends Controller
     }
 
     $this->render('orders/create.php', [
-        'customers' => $customers,
-        'warehouses' => $warehouses,
-        'products' => $products,
-        'successMessage' => $successMessage,
-        'errorMessage' => $errorMessage,
-    ]);
+    'title' => 'Yeni Sipariş',
+    'activeNav' => 'orders',
+    'customers' => $customers,
+    'warehouses' => $warehouses,
+    'products' => $products,
+    'successMessage' => $successMessage,
+    'errorMessage' => $errorMessage,
+]);
+
 }
     public function reserve(): void
 {

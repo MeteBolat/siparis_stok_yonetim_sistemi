@@ -36,12 +36,16 @@ final class WarehouseController extends Controller
             }
         }
 
+
         $this->render('warehouse/stock.php', [
+            'title' => 'Depo Stokları',
+            'activeNav' => 'warehouse',
             'warehouses' => $warehouses,
             'selectedWarehouseId' => $selectedWarehouseId,
             'selectedWarehouse' => $selectedWarehouse,
             'stocks' => $stocks,
             'summary' => $summary,
         ]);
+
     }
 }

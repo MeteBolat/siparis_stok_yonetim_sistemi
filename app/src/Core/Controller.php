@@ -1,5 +1,6 @@
 <?php
-abstract class Controller
+
+class Controller
 {
     protected PDO $pdo;
 
@@ -15,7 +16,7 @@ abstract class Controller
 
     protected function redirect(string $url): void
     {
-        header("Location: {$url}");
+        header("Location: $url");
         exit;
     }
 }
