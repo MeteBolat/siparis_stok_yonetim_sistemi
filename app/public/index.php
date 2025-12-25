@@ -17,6 +17,7 @@ function app_require(string $path): void {
 }
 
 app_require('Models/Db.php');
+app_require('Core/Logger.php');
 app_require('Core/View.php');
 app_require('Core/Controller.php');
 
