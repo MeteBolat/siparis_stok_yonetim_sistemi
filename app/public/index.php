@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+session_start();
+
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
@@ -18,6 +20,7 @@ function app_require(string $path): void {
 
 app_require('Models/Db.php');
 app_require('Core/Logger.php');
+app_require('Core/Flash.php');
 app_require('Core/View.php');
 app_require('Core/Controller.php');
 

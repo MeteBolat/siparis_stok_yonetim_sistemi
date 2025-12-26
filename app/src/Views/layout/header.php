@@ -41,4 +41,10 @@
   </div>
 </nav>
 
+<?php if ($flash = Flash::get()): ?>
+    <div class="alert alert-<?= htmlspecialchars($flash['type']) ?> mt-3">
+        <?= htmlspecialchars($flash['message']) ?>
+    </div>
+<?php endif; ?>
+
 <main class="container py-4">
