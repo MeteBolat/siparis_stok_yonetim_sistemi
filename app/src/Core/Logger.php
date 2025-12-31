@@ -24,6 +24,6 @@ class Logger
 
         $line = "[{$date}] {$level}: {$message}" . PHP_EOL;
 
-        file_put_contents(self::$logFile, $line, FILE_APPEND);
+        @file_put_contents(self::$logFile, $line, FILE_APPEND | LOCK_EX);
     }
 }

@@ -18,18 +18,22 @@ function app_require(string $path): void {
     require_once $full;
 }
 
-app_require('Models/Db.php');
-app_require('Core/Logger.php');
-app_require('Core/Flash.php');
-app_require('Core/View.php');
-app_require('Core/Controller.php');
+spl_autoload_register(function ($class) {
+    $paths = [
+        __DIR__ . '/../src/Core/',
+        __DIR__ . '/../src/Models/',
+        __DIR__ . '/../src/Controllers/',
+    ];
 
-app_require('Models/OrderModel.php');
-app_require('Models/WarehouseModel.php');
+    foreach ($paths as $path) {
+        $file = $path . $class . '.php';
+        if (is_file($file)) {
+            require_once $file;
+            return;
+        }
+    }
+});
 
-app_require('Controllers/OrdersController.php');
-app_require('Controllers/WarehouseController.php');
-app_require('Controllers/DashboardController.php');
 
 // Controller/action okuma
 $c = $_GET['c'] ?? 'orders';
