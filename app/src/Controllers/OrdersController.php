@@ -24,8 +24,8 @@ final class OrdersController extends Controller
         exit('Geçersiz sipariş ID');
     }
 
-    $order = OrderModel::findHeader($this->pdo, $orderId); // sende isim farklı olabilir
-    $items = OrderModel::findItems($this->pdo, $orderId);  // sende isim farklı olabilir
+    $order = OrderModel::findHeader($this->pdo, $orderId); 
+    $items = OrderModel::findItems($this->pdo, $orderId); 
 
     if (!$order) {
         http_response_code(404);

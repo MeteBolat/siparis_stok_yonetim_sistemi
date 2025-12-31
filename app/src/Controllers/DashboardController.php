@@ -49,7 +49,6 @@ final class DashboardController extends Controller
             LIMIT 5
         ")->fetchAll();
 
-        // Bu ikisini mutlaka tanımlıyoruz (boş da olabilir)
         $topLabels = [];
         $topData = [];
 
