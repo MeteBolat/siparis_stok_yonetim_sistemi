@@ -23,6 +23,7 @@ spl_autoload_register(function ($class) {
         __DIR__ . '/../src/Core/',
         __DIR__ . '/../src/Models/',
         __DIR__ . '/../src/Controllers/',
+        __DIR__ . '/../src/Domain/' ,
     ];
 
     foreach ($paths as $path) {
