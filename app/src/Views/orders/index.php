@@ -58,27 +58,47 @@
             <td class="text-end"><?= number_format((float)$order['shipping_cost'], 2) ?> ₺</td>
             <td><?= htmlspecialchars((string)$order['created_at']) ?></td>
             <td class="d-flex gap-2 flex-wrap">
-              <a class="btn btn-sm btn-outline-primary"
-                 href="index.php?c=orders&a=view&id=<?= (int)$order['id'] ?>">Detay</a>
+                <a class="btn btn-sm btn-outline-primary"
+                  href="index.php?c=orders&a=view&id=<?= (int)$order['id'] ?>">
+                   Detay
+                </a>
 
-              <?php if ($status === 'pending'): ?>
-                <a class="btn btn-sm btn-primary"
-                   href="index.php?c=orders&a=reserve&id=<?= (int)$order['id'] ?>">Rezerv Et</a>
+                <?php if ($status === 'pending'): ?>
 
-                <a class="btn btn-sm btn-danger"
-                   href="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"
-                   onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz?');">İptal</a>
+                      <form method="POST"
+                            action="index.php?c=orders&a=reserve&id=<?= (int)$order['id'] ?>">
+                        <button type="submit" class="btn btn-sm btn-primary">
+                          Rezerv Et
+                        </button>
+                      </form>
 
-              <?php elseif ($status === 'reserved'): ?>
-                <a class="btn btn-sm btn-success"
-                   href="index.php?c=orders&a=ship&id=<?= (int)$order['id'] ?>">Kargoya Ver</a>
+                          <form method="POST"
+                                action="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"
+                                onsubmit="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz?');">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                              İptal
+                            </button>
+                          </form>
+                
+                <?php elseif ($status === 'reserved'): ?>
+                  <form method="POST"
+                        action="index.php?c=orders&a=ship&id=<?= (int)$order['id'] ?>">
+                      <button type="submit" class="btn btn-sm btn-success">
+                        Kargoya Ver
+                      </button>
+                  </form>
 
-                <a class="btn btn-sm btn-danger"
-                   href="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"
-                   onclick="return confirm('Bu rezervasyonu iptal etmek istediğinize emin misiniz? Stoklar geri iade edilecek.');">İptal</a>
-              <?php else: ?>
-                <span class="badge text-bg-secondary">İşlem yok</span>
-              <?php endif; ?>
+                          <form method="POST"
+                                action="index.php?c=orders&a=cancel&id=<?= (int)$order['id'] ?>"
+                                onsubmit="return confirm('Bu rezervasyonu iptal etmek istediğinize emin misiniz?');">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                              İptal
+                            </button>
+                          </form>
+
+                        <?php else: ?>
+                          <span class="badge text-bg-secondary">İşlem yok</span>
+                        <?php endif; ?>
             </td>
           </tr>
         <?php endforeach; ?>
