@@ -20,10 +20,6 @@
         <?php endforeach; ?>
       </select>
     </div>
-
-    <div class="col-md-3">
-      <button type="submit" class="btn btn-primary">Stokları Göster</button>
-    </div>
   </div>
 </form>
 
