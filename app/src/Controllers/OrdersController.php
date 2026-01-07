@@ -1,6 +1,14 @@
 <?php
 final class OrdersController extends Controller
 {
+    private function onlyPost(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            exit('Method not allowed');
+        }
+    }
+
     public function index(): void
     {
         $msg = $_GET['msg'] ?? null;
@@ -38,7 +46,7 @@ final class OrdersController extends Controller
         ]);
     }
 
-    // 🔒 STATE CHANGES → POST ZORUNLU
+    // STATE CHANGES → POST ZORUNLU
     public function ship(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
