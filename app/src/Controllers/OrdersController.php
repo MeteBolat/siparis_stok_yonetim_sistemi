@@ -23,28 +23,30 @@ final class OrdersController extends Controller
     }
 
     public function view(): void
-    {
-        $orderId = (int)($_POST['id'] ?? 0);
-        if ($orderId <= 0) {
-            http_response_code(400);
-            exit('Geçersiz sipariş ID');
-        }
+{
+    $orderId = (int)($_GET['id'] ?? 0);
 
-        $order = OrderModel::findHeader($this->pdo, $orderId);
-        $items = OrderModel::findItems($this->pdo, $orderId);
-
-        if (!$order) {
-            http_response_code(404);
-            exit('Sipariş bulunamadı');
-        }
-
-        $this->render('orders/view.php', [
-            'title' => 'Sipariş Detayı #' . $orderId,
-            'activeNav' => 'orders',
-            'order' => $order,
-            'items' => $items,
-        ]);
+    if ($orderId <= 0) {
+        http_response_code(400);
+        exit('Geçersiz sipariş ID');
     }
+
+    $order = OrderModel::findHeader($this->pdo, $orderId);
+    $items = OrderModel::findItems($this->pdo, $orderId);
+
+    if (!$order) {
+        http_response_code(404);
+        exit('Sipariş bulunamadı');
+    }
+
+    $this->render('orders/view.php', [
+        'title' => 'Sipariş #' . $orderId,
+        'activeNav' => 'orders',
+        'order' => $order,
+        'items' => $items,
+    ]);
+}
+
 
     public function ship(): void
 {
