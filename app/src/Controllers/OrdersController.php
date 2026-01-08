@@ -24,7 +24,7 @@ final class OrdersController extends Controller
 
     public function view(): void
     {
-        $orderId = (int)($_GET['id'] ?? 0);
+        $orderId = (int)($_POST['id'] ?? 0);
         if ($orderId <= 0) {
             http_response_code(400);
             exit('Geçersiz sipariş ID');
@@ -54,7 +54,7 @@ final class OrdersController extends Controller
             exit('Method Not Allowed');
         }
 
-        $orderId = (int)($_GET['id'] ?? 0);
+        $orderId = (int)($_POST['id'] ?? 0);
         $ok = $orderId > 0 ? OrderModel::ship($this->pdo, $orderId) : false;
 
         $this->redirect(
@@ -69,7 +69,7 @@ final class OrdersController extends Controller
             exit('Method Not Allowed');
         }
 
-        $orderId = (int)($_GET['id'] ?? 0);
+        $orderId = (int)(['id'] ?? 0);
         $ok = $orderId > 0 ? OrderModel::reserve($this->pdo, $orderId) : false;
 
         $this->redirect(
@@ -84,7 +84,7 @@ final class OrdersController extends Controller
             exit('Method Not Allowed');
         }
 
-        $orderId = (int)($_GET['id'] ?? 0);
+        $orderId = (int)($_POST['id'] ?? 0);
         $ok = $orderId > 0 ? OrderModel::cancel($this->pdo, $orderId) : false;
 
         $this->redirect(
