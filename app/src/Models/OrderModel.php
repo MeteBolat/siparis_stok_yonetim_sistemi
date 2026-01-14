@@ -92,7 +92,9 @@ final class OrderModel
 
             $stmtUpdInv = $pdo->prepare("
                 UPDATE inventory
-                SET reserved_quantity = reserved_quantity - :qty
+                SET
+                    reserved_quantity = reserved_quantity - :qty,
+                    quantity_on_hand  = quantity_on_hand - :qty
                 WHERE id = :inv_id
             ");
             foreach ($items as $it) {

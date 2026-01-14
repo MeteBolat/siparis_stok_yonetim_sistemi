@@ -19,4 +19,11 @@ class Controller
         header("Location: $url");
         exit;
     }
+protected function redirectWithFlash(string $type, string $message, string $url): void
+{
+    Flash::set($type, $message);
+    $this->redirect($url);
 }
+}
+
+

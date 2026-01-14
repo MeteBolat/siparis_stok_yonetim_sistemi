@@ -66,7 +66,19 @@ final class OrdersController extends Controller
         ? OrderModel::ship($this->pdo, $orderId)
         : false;
 
-    $this->redirectWithMsg($ok ? "shipped_success" : "shipped_fail");
+    if ($ok) {
+        $this->redirectWithFlash(
+            'success',
+            'Sipariş kargoya verildi.',
+            'index.php?c=orders&a=index'
+        );
+    } else {
+        $this->redirectWithFlash(
+            'error',
+            'Sipariş kargoya verilemedi.',
+            'index.php?c=orders&a=index'
+        );
+    }
 }
 
 
@@ -80,8 +92,20 @@ final class OrdersController extends Controller
         ? OrderModel::reserve($this->pdo, $orderId)
         : false;
 
-    $this->redirectWithMsg($ok ? "reserved_success" : "reserved_fail");
+    if ($ok) {
+        $this->redirectWithFlash(
+            'succes',
+            'Sipariş başarıyla rezerve edildi.',
+            'index.php?c=orders&a=index'
+        );
+    } else {
+        $this->redirectWithFlash(
+            'error',
+            'Sipariş rezerve edilemedi.',
+            'index.php?c=order&a=index'
+        );
     }
+}
 
 
     public function cancel(): void
@@ -94,53 +118,86 @@ final class OrdersController extends Controller
         ? OrderModel::cancel($this->pdo, $orderId)
         : false;
 
-    $this->redirectWithMsg($ok ? "cancel_success" : "cancel_fail");
+    if ($ok) {
+        $this->redirectWithFlash(
+            'success',
+            'Sipariş iptal edildi.',
+            'index.php?c=orders&a=index'
+        );
+    } else {
+        $this->redirectWithFlash(
+            'error',
+            'Sipariş iptal edilemedi.',
+            'index.php?c=orders&a=index'
+        );
+    }
 }
 
 
     public function create(): void
-    {
-        $customers = $this->pdo->query("SELECT id, name, city FROM customers ORDER BY name")->fetchAll();
-        $warehouses = $this->pdo->query("SELECT id, name, city FROM warehouses ORDER BY name")->fetchAll();
-        $products = $this->pdo->query("SELECT id, sku, name, price FROM products ORDER BY name")->fetchAll();
+{
+    $customers  = $this->pdo->query("SELECT id, name, city FROM customers ORDER BY name")->fetchAll();
+    $warehouses = $this->pdo->query("SELECT id, name, city FROM warehouses ORDER BY name")->fetchAll();
+    $products   = $this->pdo->query("SELECT id, sku, name, price FROM products ORDER BY name")->fetchAll();
 
-        $this->render('orders/create.php', [
-            'title' => 'Yeni Sipariş',
-            'activeNav' => 'orders',
-            'customers' => $customers,
-            'warehouses' => $warehouses,
-            'products' => $products,
-            'successMessage' => '',
-            'errorMessage' => '',
-        ]);
-    }
+    $this->render('orders/create.php', [
+        'title'      => 'Yeni Sipariş',
+        'activeNav'  => 'orders',
+        'customers'  => $customers,
+        'warehouses' => $warehouses,
+        'products'   => $products,
+    ]);
+}
+
 
     public function store(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect("index.php?c=orders&a=create");
+{
+    $this->onlyPost();
+
+    $customerId  = (int)($_POST['customer_id'] ?? 0);
+    $warehouseId = (int)($_POST['warehouse_id'] ?? 0);
+    $itemsInput  = $_POST['items'] ?? [];
+
+    $cleanItems = [];
+    foreach ($itemsInput as $row) {
+        $pid = (int)($row['product_id'] ?? 0);
+        $qty = (int)($row['quantity'] ?? 0);
+
+        if ($pid > 0 && $qty > 0) {
+            $cleanItems[] = [
+                'product_id' => $pid,
+                'quantity'   => $qty,
+            ];
         }
-
-        $customerId  = (int)($_POST['customer_id'] ?? 0);
-        $warehouseId = (int)($_POST['warehouse_id'] ?? 0);
-        $itemsInput  = $_POST['items'] ?? [];
-
-        $cleanItems = [];
-        foreach ($itemsInput as $row) {
-            $pid = (int)($row['product_id'] ?? 0);
-            $qty = (int)($row['quantity'] ?? 0);
-            if ($pid > 0 && $qty > 0) {
-                $cleanItems[] = ['product_id' => $pid, 'quantity' => $qty];
-            }
-        }
-
-        [$ok, $msg] = OrderModel::createMulti(
-            $this->pdo,
-            $customerId,
-            $warehouseId,
-            $cleanItems
-        );
-
-        $this->redirectWithMsg($ok ? "create_success" : "create_fail");
     }
+
+    if ($customerId <= 0 || $warehouseId <= 0 || empty($cleanItems)) {
+        $this->redirectWithFlash(
+            'error',
+            'Sipariş bilgileri eksik.',
+            'index.php?c=orders&a=create'
+        );
+    }
+
+    [$ok, $msg] = OrderModel::createMulti(
+        $this->pdo,
+        $customerId,
+        $warehouseId,
+        $cleanItems
+    );
+
+    if ($ok) {
+        $this->redirectWithFlash(
+            'success',
+            'Sipariş başarıyla oluşturuldu.',
+            'index.php?c=orders&a=index'
+        );
+    } else {
+        $this->redirectWithFlash(
+            'error',
+            'Sipariş oluşturulamadı. Stok yetersiz olabilir.',
+            'index.php?c=orders&a=create'
+        );
+    }
+}
 }

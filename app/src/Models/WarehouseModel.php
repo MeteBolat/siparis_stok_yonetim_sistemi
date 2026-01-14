@@ -13,7 +13,7 @@ final class WarehouseModel
                 p.id, p.sku, p.name, p.price,
                 i.quantity_on_hand,
                 i.reserved_quantity,
-                (i.quantity_on_hand + i.reserved_quantity) AS total_quantity,
+                i.quantity_on_hand AS total_quantity,
                 (i.quantity_on_hand * p.price) AS stock_value
             FROM inventory i
             JOIN products p ON p.id = i.product_id
