@@ -138,8 +138,6 @@ final class OrdersController extends Controller
             $cleanItems
         );
 
-        $this->redirect(
-            "index.php?c=orders&a=index&msg=" . ($ok ? "create_success" : "create_fail")
-        );
+        $this->redirectWithMsg($ok ? "create_success" : "create_fail");
     }
 }
