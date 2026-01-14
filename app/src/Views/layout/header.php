@@ -11,7 +11,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
-    <a class="navbar-brand fw-semibold" href="index.php?c=dashboard&a=index">SiparişStok</a>
+    <a class="navbar-brand fw-semibold" href="index.php?c=orders&a=index">SiparişStok</a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
       <span class="navbar-toggler-icon"></span>
