@@ -16,6 +16,9 @@ final class OrdersController extends Controller
 
     public function index(): void
     {
+        // TODO: requireLogin()
+        // TODO: requireOrderAccess($orderId)
+
         $msg = $_GET['msg'] ?? null;
         $orders = OrderModel::list($this->pdo);
 

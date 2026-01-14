@@ -8,13 +8,13 @@
 </div>
 
 <?php
-$status = (string)($order['status'] ?? '');
-$badge = match($status) {
+  $status = (string)($order['status'] ?? '');
+  $badge = match($status) {
   'pending' => 'warning',
   'reserved' => 'info',
   'shipped' => 'success',
   'cancelled' => 'danger',
-  default => 'secondary',
+   default => 'secondary',
 };
 ?>
 
