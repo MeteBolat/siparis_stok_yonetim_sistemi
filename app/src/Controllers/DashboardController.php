@@ -3,6 +3,9 @@ final class DashboardController extends Controller
 {
     public function index(): void
     {
+        // TODO: requirelogin()
+        // TODO: requireRole('admin')
+        
         // 1) Sipariş sayıları (durum bazlı)
         $stmt = $this->pdo->query("
             SELECT status, COUNT(*) AS cnt
