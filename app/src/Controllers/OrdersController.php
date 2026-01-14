@@ -1,6 +1,11 @@
 <?php
 final class OrdersController extends Controller
 {
+    private function redirectWithMsg(string $msg): void
+    {
+    $this->redirect("index.php?c=orders&a=index&msg=$msg");
+    }
+
     private function onlyPost(): void
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -50,10 +55,7 @@ final class OrdersController extends Controller
 
     public function ship(): void
 {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        exit('Method Not Allowed');
-    }
+    $this->onlyPost();
 
     $orderId = (int)($_POST['id'] ?? 0);
 
@@ -61,18 +63,13 @@ final class OrdersController extends Controller
         ? OrderModel::ship($this->pdo, $orderId)
         : false;
 
-    $this->redirect(
-        "index.php?c=orders&a=index&msg=" . ($ok ? "shipped_success" : "shipped_fail")
-    );
+    $this->redirectWithMsg($ok ? "shipped_success" : "shipped_fail");
 }
 
 
     public function reserve(): void
 {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        exit('Method Not Allowed');
-    }
+    $this->onlyPost();
 
     $orderId = (int)($_POST['id'] ?? 0);
 
@@ -80,18 +77,13 @@ final class OrdersController extends Controller
         ? OrderModel::reserve($this->pdo, $orderId)
         : false;
 
-    $this->redirect(
-        "index.php?c=orders&a=index&msg=" . ($ok ? "reserved_success" : "reserved_fail")
-    );
+    $this->redirectWithMsg($ok ? "reserved_success" : "reserved_fail");
     }
 
 
     public function cancel(): void
 {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        exit('Method Not Allowed');
-    }
+    $this->onlyPost();
 
     $orderId = (int)($_POST['id'] ?? 0);
 
@@ -99,9 +91,7 @@ final class OrdersController extends Controller
         ? OrderModel::cancel($this->pdo, $orderId)
         : false;
 
-    $this->redirect(
-        "index.php?c=orders&a=index&msg=" . ($ok ? "cancel_success" : "cancel_fail")
-    );
+    $this->redirectWithMsg($ok ? "cancel_success" : "cancel_fail");
 }
 
 
