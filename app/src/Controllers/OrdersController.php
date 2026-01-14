@@ -94,7 +94,7 @@ final class OrdersController extends Controller
 
     if ($ok) {
         $this->redirectWithFlash(
-            'succes',
+            'success',
             'Sipariş başarıyla rezerve edildi.',
             'index.php?c=orders&a=index'
         );

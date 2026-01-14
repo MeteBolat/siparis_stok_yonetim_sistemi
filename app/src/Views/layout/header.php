@@ -13,16 +13,6 @@
   <div class="container">
     <a class="navbar-brand fw-semibold" href="index.php?c=dashboard&a=index">SiparişStok</a>
 
-     <?php if (Flash::has()): ?>
-      <?php [$type, $message] = Flash::get(); ?>
-      <div class="container mt-3">
-       <div class="alert alert-<?= htmlspecialchars($type) ?> alert-dismissible fade show">
-       <?= htmlspecialchars($message) ?>
-       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-       </div>
-     </div>
-     <?php endif; ?>
-
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -51,6 +41,16 @@
     </div>
   </div>
 </nav>
+
+<?php if (Flash::has()): ?>
+  <?php [$type, $message] = Flash::get(); ?>
+  <div class="container mt-3">
+    <div class="alert alert-<?= htmlspecialchars($type) ?> alert-dismissible fade show">
+      <?= htmlspecialchars($message) ?>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  </div>
+<?php endif; ?>
 
 <?php if ($flash = Flash::get()): ?>
 <?php endif; ?>
