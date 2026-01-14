@@ -8,20 +8,6 @@
     <h1 class="h3 mb-0">Sipariş Listesi</h1>
 </div>
 
-<?php if (($msg ?? null) === 'reserved_success'): ?>
-    <div class="alert alert-success">Stok rezervasyonu başarıyla yapıldı.</div>
-<?php elseif (($msg ?? null) === 'reserved_fail'): ?>
-    <div class="alert alert-danger">Rezervasyon yapılamadı. Yeterli stok olmayabilir.</div>
-<?php elseif (($msg ?? null) === 'shipped_success'): ?>
-    <div class="alert alert-success">Sipariş başarıyla kargoya verildi.</div>
-<?php elseif (($msg ?? null) === 'shipped_fail'): ?>
-    <div class="alert alert-danger">Kargoya verme işlemi başarısız oldu.</div>
-<?php elseif (($msg ?? null) === 'cancel_success'): ?>
-    <div class="alert alert-success">Sipariş başarıyla iptal edildi.</div>
-<?php elseif (($msg ?? null) === 'cancel_fail'): ?>
-    <div class="alert alert-danger">Sipariş iptal edilirken hata oluştu.</div>
-<?php endif; ?>
-
 <div class="card shadow-sm">
     <div class="table-responsive">
         <table class="table table-striped table-hover mb-0 align-middle">

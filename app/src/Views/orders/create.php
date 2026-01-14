@@ -2,14 +2,6 @@
   <h1 class="h3 mb-0">Yeni Sipariş Oluştur</h1>
 </div>
 
-<?php if (!empty($successMessage)): ?>
-  <div class="alert alert-success"><?= $successMessage ?></div>
-<?php endif; ?>
-
-<?php if (!empty($errorMessage)): ?>
-  <div class="alert alert-danger"><?= htmlspecialchars((string)$errorMessage) ?></div>
-<?php endif; ?>
-
 <form method="POST" class="card p-4 shadow-sm bg-white" action="index.php?c=orders&a=store">
   <div class="mb-3">
     <label for="customer_id" class="form-label">Müşteri</label>
