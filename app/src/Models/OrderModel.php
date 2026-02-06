@@ -65,124 +65,106 @@ final class OrderModel
 
     // ship_order.php ve cancel_order.php logic’ini “servis” gibi buraya taşıyoruz:
 
-    public static function ship(PDO $pdo, int $orderId): bool
-    {
-        try {
-            $pdo->beginTransaction();
+    public static function ship(PDO $pdo, int $orderId): array
+{
+    try {
+        $pdo->beginTransaction();
 
-            $order = self::lockOrder($pdo, $orderId);
-            if (!$order || $order['status'] !== 'reserved') {
+        $order = self::lockOrder($pdo, $orderId);
+        if (!$order || $order['status'] !== 'reserved') {
+            $pdo->rollBack();
+            return ['ok' => false, 'msg' => 'Sipariş kargoya verilemez.'];
+        }
+
+        $warehouseId = (int)$order['warehouse_id'];
+        $items = self::lockOrderInventoryItems($pdo, $orderId, $warehouseId);
+
+        foreach ($items as $it) {
+            if ((int)$it['reserved_quantity'] < (int)$it['quantity']) {
                 $pdo->rollBack();
-                return false;
+                return ['ok' => false, 'msg' => 'Rezerv stok yetersiz.'];
             }
 
-            $warehouseId = (int)$order['warehouse_id'];
-            $items = self::lockOrderInventoryItems($pdo, $orderId, $warehouseId);
-            if (!$items) {
-                $pdo->rollBack();
-                return false;
-            }
-
-            foreach ($items as $it) {
-                if ((int)$it['reserved_quantity'] < (int)$it['quantity']) {
-                    $pdo->rollBack();
-                    return false;
-                }
-            }
-
-            $stmtUpdInv = $pdo->prepare("
+            $pdo->prepare("
                 UPDATE inventory
-                SET
+                SET 
                     reserved_quantity = reserved_quantity - :qty,
-                    quantity_on_hand  = quantity_on_hand - :qty
+                    quantity_on_hand = quantity_on_hand - :qty
                 WHERE id = :inv_id
-            ");
-            foreach ($items as $it) {
-                $stmtUpdInv->execute([
-                    ':qty' => (int)$it['quantity'],
-                    ':inv_id' => (int)$it['inventory_id'],
-                ]);
-            }
+            ")->execute([
+                ':qty' => (int)$it['quantity'],
+                ':inv_id' => (int)$it['inventory_id'],
+            ]);
+        }
 
-            $pdo->prepare("UPDATE orders SET status='shipped' WHERE id=:id")
+        $pdo->prepare("UPDATE orders SET status='shipped' WHERE id=:id")
+            ->execute([':id' => $orderId]);
+
+        $pdo->commit();
+
+        return [
+            'ok' => true,
+            'msg' => 'Sipariş kargoya verildi.'
+        ];
+
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return ['ok' => false, 'msg' => 'Kargoya verme işlemi başarısız.'];
+    }
+}
+
+
+    public static function cancel(PDO $pdo, int $orderId): array
+{
+    try {
+        $pdo->beginTransaction();
+
+        $order = self::lockOrder($pdo, $orderId);
+        if (!$order || in_array($order['status'], ['cancelled','shipped'])) {
+            $pdo->rollBack();
+            return ['ok' => false, 'msg' => 'Sipariş iptal edilemez.'];
+        }
+
+        if ($order['status'] === 'pending') {
+            $pdo->prepare("UPDATE orders SET status='cancelled' WHERE id=:id")
                 ->execute([':id' => $orderId]);
 
             $pdo->commit();
-            return true;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
-            return false;
+            return ['ok' => true, 'msg' => 'Sipariş iptal edildi.'];
         }
-    }
 
-    public static function cancel(PDO $pdo, int $orderId): bool
-    {
-        try {
-            $pdo->beginTransaction();
+        $warehouseId = (int)$order['warehouse_id'];
+        $items = self::lockOrderInventoryItems($pdo, $orderId, $warehouseId);
 
-            $order = self::lockOrder($pdo, $orderId);
-            if (!$order) {
-                $pdo->rollBack();
-                return false;
-            }
-
-            $status = $order['status'];
-            if ($status === 'cancelled' || $status === 'shipped') {
-                $pdo->rollBack();
-                return false;
-            }
-
-            // pending: sadece cancelled
-            if ($status === 'pending') {
-                $pdo->prepare("UPDATE orders SET status='cancelled' WHERE id=:id")
-                    ->execute([':id' => $orderId]);
-                $pdo->commit();
-                return true;
-            }
-
-            // reserved: stok iadesi + cancelled
-            if ($status === 'reserved') {
-                $warehouseId = (int)$order['warehouse_id'];
-                $items = self::lockOrderInventoryItems($pdo, $orderId, $warehouseId);
-                if (!$items) {
-                    $pdo->rollBack();
-                    return false;
-                }
-
-                foreach ($items as $it) {
-                    if ((int)$it['reserved_quantity'] < (int)$it['quantity']) {
-                        $pdo->rollBack();
-                        return false;
-                    }
-                }
-
-                $stmtUpdInv = $pdo->prepare("
-                    UPDATE inventory
-                    SET reserved_quantity = reserved_quantity - :qty,
-                        quantity_on_hand  = quantity_on_hand  + :qty
-                    WHERE id = :inv_id
-                ");
-                foreach ($items as $it) {
-                    $stmtUpdInv->execute([
-                        ':qty' => (int)$it['quantity'],
-                        ':inv_id' => (int)$it['inventory_id'],
-                    ]);
-                }
-
-                $pdo->prepare("UPDATE orders SET status='cancelled' WHERE id=:id")
-                    ->execute([':id' => $orderId]);
-
-                $pdo->commit();
-                return true;
-            }
-
-            $pdo->rollBack();
-            return false;
-        } catch (Throwable $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
-            return false;
+        foreach ($items as $it) {
+            $pdo->prepare("
+                UPDATE inventory
+                SET 
+                    reserved_quantity = reserved_quantity - :qty,
+                    quantity_on_hand = quantity_on_hand + :qty
+                WHERE id = :inv_id
+            ")->execute([
+                ':qty' => (int)$it['quantity'],
+                ':inv_id' => (int)$it['inventory_id']
+            ]);
         }
+
+        $pdo->prepare("UPDATE orders SET status='cancelled' WHERE id=:id")
+            ->execute([':id' => $orderId]);
+
+        $pdo->commit();
+
+        return [
+            'ok' => true,
+            'msg' => 'Rezervasyon iptal edildi.'
+        ];
+
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        return ['ok' => false, 'msg' => 'İptal sırasında hata oluştu.'];
     }
+}
+
 
     private static function lockOrder(PDO $pdo, int $orderId): ?array
     {
@@ -352,18 +334,23 @@ final class OrderModel
              . count($enriched)
              . " | Toplam: " . number_format($totalAmount, 2) . " ₺";
 
-        return [true, $msg];
+        return [
+            'ok' => true,
+            'msg'=> $msg
+        ];
+        
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        return [false, "Sipariş oluşturulurken hata: " . $e->getMessage()];
+        return [
+            'ok' => false,
+            'msg' => "Sipariş oluşturulurken hata: " . $e->getMessage()];
     }
 }
-    public static function reserve(PDO $pdo, int $orderId): bool
+    public static function reserve(PDO $pdo, int $orderId): array
 {
     try {
         $pdo->beginTransaction();
 
-        // siparişi kilitle
         $stmtOrder = $pdo->prepare("
             SELECT id, warehouse_id, status
             FROM orders
@@ -373,12 +360,13 @@ final class OrderModel
         $stmtOrder->execute([':oid' => $orderId]);
         $order = $stmtOrder->fetch();
 
-        if (!$order) { $pdo->rollBack(); return false; }
-        if ($order['status'] !== 'pending') { $pdo->rollBack(); return false; }
+        if (!$order || $order['status'] !== 'pending') {
+            $pdo->rollBack();
+            return ['ok' => false, 'msg' => 'Sipariş rezerve edilemez.'];
+        }
 
         $warehouseId = (int)$order['warehouse_id'];
 
-        // sipariş kalemleri
         $stmtItems = $pdo->prepare("
             SELECT product_id, quantity
             FROM order_items
@@ -387,45 +375,53 @@ final class OrderModel
         $stmtItems->execute([':oid' => $orderId]);
         $items = $stmtItems->fetchAll();
 
-        if (!$items) { $pdo->rollBack(); return false; }
-
         foreach ($items as $item) {
-            $productId = (int)$item['product_id'];
-            $qty = (int)$item['quantity'];
-
-            // inventory satırını kilitle
             $stmtInv = $pdo->prepare("
                 SELECT id, quantity_on_hand, reserved_quantity
                 FROM inventory
                 WHERE warehouse_id = :wid AND product_id = :pid
                 FOR UPDATE
             ");
-            $stmtInv->execute([':wid' => $warehouseId, ':pid' => $productId]);
+            $stmtInv->execute([
+                ':wid' => $warehouseId,
+                ':pid' => (int)$item['product_id']
+            ]);
             $inv = $stmtInv->fetch();
 
-            if (!$inv) { $pdo->rollBack(); return false; }
+            if (!$inv) {
+                $pdo->rollBack();
+                return ['ok' => false, 'msg' => 'Stok kaydı bulunamadı.'];
+            }
 
             $available = (int)$inv['quantity_on_hand'] - (int)$inv['reserved_quantity'];
-            if ($available < $qty) { $pdo->rollBack(); return false; }
+            if ($available < (int)$item['quantity']) {
+                $pdo->rollBack();
+                return ['ok' => false, 'msg' => 'Yeterli stok yok.'];
+            }
 
-            // reserved artır
-            $stmtUpd = $pdo->prepare("
+            $pdo->prepare("
                 UPDATE inventory
                 SET reserved_quantity = reserved_quantity + :qty
                 WHERE id = :id
-            ");
-            $stmtUpd->execute([':qty' => $qty, ':id' => (int)$inv['id']]);
+            ")->execute([
+                ':qty' => (int)$item['quantity'],
+                ':id' => (int)$inv['id']
+            ]);
         }
 
-        // sipariş status reserved
         $pdo->prepare("UPDATE orders SET status='reserved' WHERE id=:oid")
             ->execute([':oid' => $orderId]);
 
         $pdo->commit();
-        return true;
+
+        return [
+            'ok' => true,
+            'msg' => 'Sipariş başarıyla rezerve edildi.'
+        ];
+
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        return false;
+        return ['ok' => false, 'msg' => 'Rezervasyon sırasında hata oluştu.'];
     }
 }
 }
