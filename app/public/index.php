@@ -44,6 +44,7 @@ $controllerMap = [
     'orders'    => OrdersController::class,
     'warehouse' => WarehouseController::class,
     'dashboard' => DashboardController::class,
+    'auth'      => AuthController::class,
 ];
 
 if (!isset($controllerMap[$c])) {

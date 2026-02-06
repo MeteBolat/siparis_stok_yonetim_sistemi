@@ -4,9 +4,6 @@ final class DashboardController extends Controller
 {
     public function index(): void
     {
-        // TODO: requireLogin()
-        // TODO: requireRole('admin')
-
         $counts = DashboardModel::orderCounts($this->pdo);
         $totals = DashboardModel::orderTotals($this->pdo);
         $totalWarehouses = DashboardModel::warehouseCount($this->pdo);

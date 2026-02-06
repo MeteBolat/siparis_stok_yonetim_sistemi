@@ -32,6 +32,8 @@ final class OrdersController extends Controller
 
     public function view(): void
     {
+        Auth::check();
+
         $orderId = (int)($_GET['id'] ?? 0);
 
         if ($orderId <= 0) {
@@ -57,6 +59,8 @@ final class OrdersController extends Controller
 
     public function reserve(): void
     {
+        Auth::check();
+
         $this->onlyPost();
 
         $orderId = (int)($_POST['id'] ?? 0);
@@ -72,6 +76,8 @@ final class OrdersController extends Controller
 
     public function ship(): void
     {
+        Auth::check();
+        
         $this->onlyPost();
 
         $orderId = (int)($_POST['id'] ?? 0);
@@ -87,6 +93,8 @@ final class OrdersController extends Controller
 
     public function cancel(): void
     {
+        Auth::check();
+        
         $this->onlyPost();
 
         $orderId = (int)($_POST['id'] ?? 0);
@@ -102,6 +110,8 @@ final class OrdersController extends Controller
 
     public function create(): void
     {
+        Auth::check();
+
         $customers  = $this->pdo->query("SELECT id, name, city FROM customers ORDER BY name")->fetchAll();
         $warehouses = $this->pdo->query("SELECT id, name, city FROM warehouses ORDER BY name")->fetchAll();
         $products   = $this->pdo->query("SELECT id, sku, name, price FROM products ORDER BY name")->fetchAll();
@@ -117,6 +127,8 @@ final class OrdersController extends Controller
 
     public function store(): void
     {
+        Auth::check();
+        
         $this->onlyPost();
 
         $customerId  = (int)($_POST['customer_id'] ?? 0);
