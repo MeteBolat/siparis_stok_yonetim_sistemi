@@ -5,6 +5,7 @@ final class OrdersController extends Controller
     public function __construct(PDO $pdo)
     {
         parent::__construct($pdo);
+
         Auth::check();
     }
 
@@ -27,6 +28,7 @@ final class OrdersController extends Controller
 
     public function index(): void
     {
+        Auth::roles(['admin']);
         $orders = OrderModel::list($this->pdo);
 
         $this->render('orders/index.php', [
@@ -38,6 +40,7 @@ final class OrdersController extends Controller
 
     public function view(): void
     {
+        Auth::roles(['admin', 'sales','warehouse']);
         $orderId = (int)($_GET['id'] ?? 0);
 
         if ($orderId <= 0) {
@@ -63,6 +66,7 @@ final class OrdersController extends Controller
 
     public function reserve(): void
     {
+        Auth::roles(['admin', 'sales']);
         $this->onlyPost();
 
         $orderId = (int)($_POST['id'] ?? 0);
@@ -78,6 +82,7 @@ final class OrdersController extends Controller
 
     public function ship(): void
     {
+        Auth::roles(['admin', 'sales']);
         $this->onlyPost();
 
         $orderId = (int)($_POST['id'] ?? 0);
@@ -93,6 +98,7 @@ final class OrdersController extends Controller
 
     public function cancel(): void
     {
+        Auth::roles(['admin', 'sales']);
         $this->onlyPost();
 
         $orderId = (int)($_POST['id'] ?? 0);
@@ -108,6 +114,7 @@ final class OrdersController extends Controller
 
     public function create(): void
     {
+        Auth::roles(['admin', 'sales']);
         $customers  = $this->pdo->query("SELECT id, name, city FROM customers ORDER BY name")->fetchAll();
         $warehouses = $this->pdo->query("SELECT id, name, city FROM warehouses ORDER BY name")->fetchAll();
         $products   = $this->pdo->query("SELECT id, sku, name, price FROM products ORDER BY name")->fetchAll();
@@ -123,6 +130,7 @@ final class OrdersController extends Controller
 
     public function store(): void
     {
+        Auth::roles(['admin', 'sales', 'warehouse']);
         $this->onlyPost();
 
         $customerId  = (int)($_POST['customer_id'] ?? 0);

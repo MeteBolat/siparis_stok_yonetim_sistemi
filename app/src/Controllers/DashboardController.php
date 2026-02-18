@@ -4,6 +4,7 @@ final class DashboardController extends Controller
 {
     public function index(): void
     {
+        Auth::roles(['admin','sales']);
         $counts = DashboardModel::orderCounts($this->pdo);
         $totals = DashboardModel::orderTotals($this->pdo);
         $totalWarehouses = DashboardModel::warehouseCount($this->pdo);

@@ -3,6 +3,7 @@ final class WarehouseController extends Controller
 {
     public function stock(): void
     {
+        Auth::roles(['admin','warehouse']);
         $warehouses = WarehouseModel::listWarehouses($this->pdo);
 
         $selectedWarehouseId = (int)($_GET['warehouse_id'] ?? 0);

@@ -17,4 +17,9 @@ class Auth
             exit('Yetkisiz erişim');
         }
     }
+
+    public static function hasRole(string $role): bool
+    {
+        return ($_SESSION['role'] ?? null) === $role;
+    }
 }

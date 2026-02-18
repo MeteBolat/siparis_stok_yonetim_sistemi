@@ -117,7 +117,10 @@ CREATE TABLE users (
 
 -- 
 INSERT INTO users (username, password, role) VALUES
-('admin', '$2y$10$LXy.Lzd7PD41pGRUAg2Q..lAykTYrYFdcxQL3sFZ18hIKEotbSffW', 'admin');
+('admin', '$2y$10$UVAPhrtgL6prOFnvgE0kVeRW5JkZhMrVtjzF.x44vIFKgAxptsSya', 'admin'),
+('sales', '$2y$10$QkE8GXPavP.c4B8cpBDhfuYD5pgnKV7ep/Q9RzJYUrOOSLHyjBZ1q', 'sales'),
+('warehouse', '$2y$10$cgumN2TNSaduIPzl8GDqoeRXqK294nW0wKBVJ0LCzSqrt4QPm.Mja', 'warehouse'),
+('guest', '$2y$10$.YFTBtWTP8ejv8njjh4dO.j1xigHX6gQSM2poAHQR1Qiw1WOhLJlK', 'guest');
 
 -- Depolar
 INSERT INTO warehouses (name, city) VALUES
