@@ -107,6 +107,18 @@ CREATE TABLE city_distances (
     UNIQUE (from_city, to_city)
 ) ENGINE=InnoDB;
 
+-- Kullanıcı adı, şifre ve rol
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL
+);
+
+-- 
+INSERT INTO users (username, password, role) VALUES
+('admin', '$2y$10$LXy.Lzd7PD41pGRUAg2Q..lAykTYrYFdcxQL3sFZ18hIKEotbSffW', 'admin');
+
 -- Depolar
 INSERT INTO warehouses (name, city) VALUES
 ('İstanbul Deposu', 'İstanbul'),

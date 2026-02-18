@@ -3,38 +3,57 @@
 final class AuthController extends Controller
 {
     public function login(): void
-    {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+{
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-            $username = $_POST['username'] ?? '';
-            $password = $_POST['password'] ?? '';
+        $username = $_POST['username'] ?? '';
+        $password = $_POST['password'] ?? '';
 
-            if ($username === 'admin' && $password === '1234') {
+        $userModel = new UserModel($this->pdo);
+        $user = $userModel->findByUsername($username);
 
-                session_regenerate_id(true);
+        if ($user && password_verify($password, $user['password'])) {
 
-                $_SESSION['user_id'] = 1;
-                $_SESSION['role'] = 'admin';
+            session_regenerate_id(true);
 
-                header("Location: index.php?c=orders&a=index");
-                exit;
-            }
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['role'] = $user['role'];
 
-            echo "Hatalı giriş";
-            return;
+            header("Location: index.php?c=dashboard&a=index");
+            exit;
         }
 
-        echo '
-        <form method="POST">
-            <input type="text" name="username" placeholder="Kullanıcı adı">
-            <input type="password" name="password" placeholder="Şifre">
-            <button type="submit">Giriş</button>
-        </form>
-        ';
+        echo "Hatalı kullanıcı adı veya şifre";
+        return;
     }
+
+    echo '
+    <form method="POST">
+        <input type="text" name="username" placeholder="Kullanıcı adı">
+        <input type="password" name="password" placeholder="Şifre">
+        <button type="submit">Giriş</button>
+    </form>
+    ';
+}
+
 
     public function logout(): void
     {
+        $_SESSION = [];
+
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
+        );
+    }
+
         session_destroy();
         header("Location: index.php?c=auth&a=login");
         exit;

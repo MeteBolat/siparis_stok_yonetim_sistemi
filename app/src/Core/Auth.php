@@ -10,9 +10,9 @@ class Auth
         }
     }
 
-    public static function role(string $role): void
+    public static function roles(array $roles): void
     {
-        if (($_SESSION['role'] ?? null) !== $role) {
+        if (!in_array($_SESSION['role'] ?? null, $roles, true)) {
             http_response_code(403);
             exit('Yetkisiz erişim');
         }
