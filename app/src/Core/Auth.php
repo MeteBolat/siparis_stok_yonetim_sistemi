@@ -18,8 +18,14 @@ class Auth
         }
     }
 
-    public static function hasRole(string $role): bool
+    public static function hasRole(string|array $roles): bool
     {
-        return ($_SESSION['role'] ?? null) === $role;
+        if (!isset($_SESSION['role'])) return false;
+
+        if (is_array($roles)) {
+            return in_array($_SESSION['role'], $roles, true);
+        }
+
+        return $_SESSION['role'] === $roles;
     }
 }

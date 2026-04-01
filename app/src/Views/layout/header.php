@@ -33,10 +33,22 @@
         </li>
       </ul>
 
-      <div class="d-flex gap-2">
+      <div class="d-flex align-items-center gap-2">
+
         <a class="btn btn-success btn-sm" href="index.php?c=orders&a=create">
           + Yeni Sipariş
         </a>
+
+        <?php if (!empty($_SESSION['user_id'])): ?>
+          <span class="text-white small">
+            <?= htmlspecialchars($_SESSION['username'] ?? '') ?> (<?= htmlspecialchars($_SESSION['role'] ?? '') ?>)
+          </span>
+
+          <a class="btn btn-outline-light btn-sm" href="index.php?c=auth&a=logout">
+            Çıkış
+          </a>
+        <?php endif; ?>
+
       </div>
     </div>
   </div>
@@ -50,9 +62,6 @@
       <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
   </div>
-<?php endif; ?>
-
-<?php if ($flash = Flash::get()): ?>
 <?php endif; ?>
 
 <main class="container py-4">
