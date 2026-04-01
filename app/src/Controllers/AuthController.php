@@ -22,7 +22,7 @@ final class AuthController extends Controller
             header("Location: index.php?c=dashboard&a=index");
             exit;
         }
-
+        
         echo "Hatalı kullanıcı adı veya şifre";
         return;
     }
